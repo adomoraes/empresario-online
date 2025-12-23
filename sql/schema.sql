@@ -19,7 +19,41 @@ CREATE TABLE IF NOT EXISTS personal_access_tokens (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- Inserir um utilizador de teste (se a tabela estiver vazia)
--- Senha '123456' (Hash gerado pelo PHP password_hash)
-INSERT IGNORE INTO users (id, name, email, password, role) 
-VALUES (1, 'Admin User', 'admin@example.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin');
+-- 1. Tabela de Categorias (Para classificar Entrevistas e Artigos)
+CREATE TABLE IF NOT EXISTS categories (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    slug VARCHAR(255) NOT NULL UNIQUE, -- URL amigável (ex: tecnologia-php)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 2. Tabela de Artigos
+CREATE TABLE IF NOT EXISTS articles (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL, -- Autor
+    category_id INT NULL,
+    title VARCHAR(255) NOT NULL,
+    content TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL
+);
+
+-- 3. Tabela de Logs de Acesso (Requisito Admin)
+CREATE TABLE IF NOT EXISTS access_logs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NULL, -- Pode ser NULL se for visitante não logado
+    method VARCHAR(10) NOT NULL, -- GET, POST
+    route VARCHAR(255) NOT NULL,
+    ip_address VARCHAR(45),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 4. Tabela de Interesses (Relação User <-> Categorias)
+CREATE TABLE IF NOT EXISTS user_interests (
+    user_id INT NOT NULL,
+    category_id INT NOT NULL,
+    PRIMARY KEY (user_id, category_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
+);

@@ -22,6 +22,18 @@ class Router
         $this->add('POST', $path, $controller, $action, $middlewares);
     }
 
+    // --- NOVO: Método PUT ---
+    public function put(string $path, string $controller, string $action, array $middlewares = []): void
+    {
+        $this->add('PUT', $path, $controller, $action, $middlewares);
+    }
+
+    // --- NOVO: Método DELETE (Já fica pronto para o futuro) ---
+    public function delete(string $path, string $controller, string $action, array $middlewares = []): void
+    {
+        $this->add('DELETE', $path, $controller, $action, $middlewares);
+    }
+
     /**
      * Função interna para guardar a rota
      * O ERRO ESTAVA PROVAVELMENTE AQUI: Faltava guardar o 'middlewares'
