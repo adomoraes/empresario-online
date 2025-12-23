@@ -125,4 +125,30 @@ class UserController
             'data' => $user
         ]);
     }
+
+    /**
+     * PUT /profile
+     * Atualiza os dados do próprio utilizador logado
+     */
+    public function updateProfile()
+    {
+        $user = $_REQUEST['user']; // Vem do AuthMiddleware
+        $data = json_decode(file_get_contents('php://input'), true);
+
+        // Apenas permitimos alterar nome e email por enquanto
+        $newName = $data['name'] ?? $user['name'];
+        $newEmail = $data['email'] ?? $user['email'];
+
+        // Atualizar no Banco (Idealmente esta lógica estaria no Model User::update)
+        $pdo = \App\Config\Database::getConnection();
+        $stmt = $pdo->prepare("UPDATE users SET name = ?, email = ? WHERE id = ?");
+
+        try {
+            $stmt->execute([$newName, $newEmail, $user['id']]);
+            echo json_encode(['message' => 'Perfil atualizado com sucesso!']);
+        } catch (\PDOException $e) {
+            http_response_code(500);
+            echo json_encode(['error' => 'Erro ao atualizar. Email pode já existir.']);
+        }
+    }
 }
