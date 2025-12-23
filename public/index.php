@@ -5,6 +5,7 @@ require_once __DIR__ . '/../vendor/autoload.php';
 
 use App\Config\Router;
 use App\Controllers\UserController;
+use App\Middlewares\AuthMiddleware;
 
 // 2. Configurações Globais (CORS e JSON)
 header('Content-Type: application/json');
@@ -19,11 +20,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 // 3. Instanciar o Router
 $router = new Router();
 
-// --- ROTAS ---
-
-// Auth
+// --- ROTAS PÚBLICAS ---
 $router->post('/register', UserController::class, 'register');
-$router->post('/login', UserController::class, 'login'); // <--- Vamos criar isto agora
+$router->post('/login', UserController::class, 'login');
+
+// --- ROTAS PROTEGIDAS ---
+// Repara no array extra com AuthMiddleware::class
+$router->get('/me', UserController::class, 'me', [AuthMiddleware::class]);
 
 // --- EXECUTAR ---
 $router->dispatch();

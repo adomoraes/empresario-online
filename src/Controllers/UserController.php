@@ -100,4 +100,20 @@ class UserController
             }
         }
     }
+
+    /**
+     * Retorna os dados do utilizador autenticado.
+     * Rota protegida.
+     */
+    public function me()
+    {
+        // O Middleware AuthMiddleware já validou e colocou o user no $_REQUEST
+        // Se chegou aqui, é porque tem token válido.
+        $user = $_REQUEST['user'];
+
+        echo json_encode([
+            'message' => 'Você está autenticado!',
+            'data' => $user
+        ]);
+    }
 }
