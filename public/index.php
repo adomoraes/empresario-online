@@ -1,21 +1,29 @@
 <?php
 
+// 1. Autoload
 require_once __DIR__ . '/../vendor/autoload.php';
 
+use App\Config\Router;
 use App\Controllers\UserController;
 
-// Configurar cabeçalhos para aceitar JSON
+// 2. Configurações Globais (CORS e JSON)
 header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *'); // Permite requisições de qualquer origem (CORS básico)
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, Authorization');
 
-// --- SIMULAÇÃO DE ROTEAMENTO ---
-// Vamos verificar se o método é POST. Se for, chamamos o controlador.
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $controller = new UserController();
-    $controller->register();
-    exit; // Termina a execução aqui para não mostrar mais nada
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    exit(0);
 }
 
-// Se não for POST (ex: abrires no navegador), mostra mensagem padrão
-echo json_encode(['message' => 'API pronta. Use o Postman com POST para testar o registo.']);
+// 3. Instanciar o Router
+$router = new Router();
+
+// --- ROTAS ---
+
+// Auth
+$router->post('/register', UserController::class, 'register');
+$router->post('/login', UserController::class, 'login'); // <--- Vamos criar isto agora
+
+// --- EXECUTAR ---
+$router->dispatch();

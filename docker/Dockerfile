@@ -1,21 +1,23 @@
-# Usamos a imagem oficial do PHP com Apache
 FROM php:8.2-apache
 
-# Instalar extensões necessárias para o MySQL
-RUN docker-php-ext-install pdo pdo_mysql
+# 1. Instalar dependências do sistema e extensões PHP
+RUN apt-get update && apt-get install -y \
+    git \
+    unzip \
+    && docker-php-ext-install pdo pdo_mysql
 
-# Copia o executável do Composer de uma imagem oficial para a nossa
+# 2. Instalar Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Ativar o mod_rewrite do Apache
-# Isto é crucial para transformar URLs como /users em index.php?route=/users
+# 3. Ativar Mod Rewrite (Essencial para rotas)
 RUN a2enmod rewrite
 
-# Alterar a raiz do documento para a pasta /public
-# (Assim o utilizador não consegue aceder ao código fonte em /src diretamente)
-ENV APACHE_DOCUMENT_ROOT /var/www/html/public
-RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
-RUN sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf
+# 4. Copiar a nossa configuração do Apache para substituir a padrão
+# Isto força o Apache a ler o teu .htaccess e aponta para a pasta public
+COPY docker/vhost.conf /etc/apache2/sites-available/000-default.conf
 
-# Define o diretório de trabalho
+# 5. Configurar pasta de trabalho
 WORKDIR /var/www/html
+
+# 6. Ajustar permissões (Evita problemas de escrita)
+RUN chown -R www-data:www-data /var/www/html
