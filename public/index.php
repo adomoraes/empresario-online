@@ -2,29 +2,20 @@
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
-use App\Models\User;
+use App\Controllers\UserController;
 
+// Configurar cabeçalhos para aceitar JSON
 header('Content-Type: application/json');
+header('Access-Control-Allow-Origin: *'); // Permite requisições de qualquer origem (CORS básico)
 
-try {
-    // 1. Simular dados de um novo utilizador
-    $email = 'teste_' . time() . '@exemplo.com'; // Email único para não dar erro
-    $senhaSegura = password_hash('minha_senha_secreta', PASSWORD_DEFAULT); // Hash do PHP
+// --- SIMULAÇÃO DE ROTEAMENTO ---
+// Vamos verificar se o método é POST. Se for, chamamos o controlador.
 
-    // 2. Tentar criar usando o nosso novo Model
-    $novoId = User::create('Utilizador Teste', $email, $senhaSegura);
-
-    // 3. Buscar o utilizador que acabámos de criar
-    $usuario = User::find($novoId);
-
-    echo json_encode([
-        'status' => 'success',
-        'message' => 'Utilizador criado com PHP Nativo!',
-        'data' => $usuario
-    ]);
-} catch (Exception $e) {
-    echo json_encode([
-        'status' => 'error',
-        'message' => $e->getMessage()
-    ]);
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $controller = new UserController();
+    $controller->register();
+    exit; // Termina a execução aqui para não mostrar mais nada
 }
+
+// Se não for POST (ex: abrires no navegador), mostra mensagem padrão
+echo json_encode(['message' => 'API pronta. Use o Postman com POST para testar o registo.']);
