@@ -10,6 +10,9 @@ use App\Middlewares\AdminMiddleware;
 use App\Controllers\CategoryController;
 use App\Controllers\LogController;
 use App\Middlewares\LogMiddleware;
+use App\Controllers\InterestController;
+use App\Controllers\DashboardController;
+use App\Controllers\ImportController;
 
 // 2. Configurações Globais (CORS e JSON)
 header('Content-Type: application/json');
@@ -57,6 +60,21 @@ $router->post('/categories', CategoryController::class, 'store', [
 $router->get('/admin/logs', LogController::class, 'index', [
     App\Middlewares\AuthMiddleware::class,
     App\Middlewares\AdminMiddleware::class
+]);
+
+// --- GESTÃO DE INTERESSES (USER) ---
+$router->get('/interests', InterestController::class, 'index', [AuthMiddleware::class]);
+$router->post('/interests', InterestController::class, 'store', [AuthMiddleware::class]);
+$router->delete('/interests', InterestController::class, 'delete', [AuthMiddleware::class]);
+
+// --- DASHBOARD PERSONALIZADO ---
+$router->get('/dashboard', DashboardController::class, 'index', [AuthMiddleware::class]);
+
+// --- IMPORTAÇÃO DE DADOS ---
+// Rota para enviar o JSON complexo
+$router->post('/admin/import/interview', ImportController::class, 'import', [
+    App\Middlewares\AuthMiddleware::class,
+    App\Middlewares\AdminMiddleware::class // Se já tiveres o teu user como admin
 ]);
 
 // --- EXECUTAR ---
