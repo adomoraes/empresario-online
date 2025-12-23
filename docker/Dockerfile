@@ -4,6 +4,9 @@ FROM php:8.2-apache
 # Instalar extensões necessárias para o MySQL
 RUN docker-php-ext-install pdo pdo_mysql
 
+# Copia o executável do Composer de uma imagem oficial para a nossa
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
 # Ativar o mod_rewrite do Apache
 # Isto é crucial para transformar URLs como /users em index.php?route=/users
 RUN a2enmod rewrite

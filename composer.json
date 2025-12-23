@@ -1,0 +1,11 @@
+{
+	"name": "projects/empresario-online",
+	"version": "1.0.0",
+	"description": "API em PHP Puro com Docker",
+	"autoload": {
+		"psr-4": {
+			"App\\": "src/"
+		}
+	},
+	"require": {}
+}
