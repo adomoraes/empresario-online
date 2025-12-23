@@ -1,0 +1,29 @@
+version: "3.8"
+
+services:
+  # O nosso servidor PHP (A Aplicação)
+  app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8080:80" # Acederemos via http://localhost:8080
+    volumes:
+      - .:/var/www/html # Sincroniza a tua pasta local com o container
+    depends_on:
+      - db
+
+  # O banco de dados MySQL
+  db:
+    image: mysql:8.0
+    container_name: mysql_nativo
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: meu_banco
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+    ports:
+      - "3306:3306"
+    volumes:
+      # Guarda os dados mesmo se desligares o docker
+      - ./docker/mysql-data:/var/lib/mysql
