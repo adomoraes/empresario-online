@@ -13,6 +13,7 @@ class User
     public string $email;
     public string $password;
     public string $role;
+    public ?string $created_at;
 
     /**
      * Cria um novo utilizador no banco de dados.
