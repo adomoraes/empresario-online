@@ -1,17 +1,25 @@
 <?php
 
-// 1. Carregar o Autoload do Composer
-// O __DIR__ garante que o caminho é relativo à pasta atual
 require_once __DIR__ . '/../vendor/autoload.php';
 
-use App\Utils\Teste; // Importar a classe
-
-// 2. Teste rápido
-// Vamos tentar usar uma classe que ainda não existe para ver o erro (ou criar uma de teste)
-// Mas por enquanto, apenas confirmamos que o ficheiro carregou.
+use App\Config\Database;
 
 header('Content-Type: application/json');
 
-echo json_encode([
-    'message' => Teste::hello()
-]);
+try {
+    // Tentamos obter a conexão usando a nossa classe
+    $pdo = Database::getConnection();
+
+    echo json_encode([
+        'status' => 'success',
+        'message' => 'Conexão PDO estabelecida com sucesso através da classe Database!',
+        'database_driver' => $pdo->getAttribute(PDO::ATTR_DRIVER_NAME)
+    ]);
+} catch (Exception $e) {
+    // Se falhar, devolvemos erro 500 e a mensagem JSON
+    http_response_code(500);
+    echo json_encode([
+        'status' => 'error',
+        'message' => $e->getMessage()
+    ]);
+}
