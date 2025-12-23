@@ -6,6 +6,7 @@ require_once __DIR__ . '/../vendor/autoload.php';
 use App\Config\Router;
 use App\Controllers\UserController;
 use App\Middlewares\AuthMiddleware;
+use App\Middlewares\AdminMiddleware;
 
 // 2. Configurações Globais (CORS e JSON)
 header('Content-Type: application/json');
@@ -27,6 +28,13 @@ $router->post('/login', UserController::class, 'login');
 // --- ROTAS PROTEGIDAS ---
 // Repara no array extra com AuthMiddleware::class
 $router->get('/me', UserController::class, 'me', [AuthMiddleware::class]);
+
+// --- ROTAS ADMIN ---
+// Repara na ordem do array: Primeiro valida o Token, depois valida a Role.
+$router->get('/users', UserController::class, 'index', [
+    AuthMiddleware::class,
+    AdminMiddleware::class
+]);
 
 // --- EXECUTAR ---
 $router->dispatch();

@@ -74,4 +74,11 @@ class User
 
         return $user ?: null;
     }
+
+    public static function all(): array
+    {
+        $pdo = \App\Config\Database::getConnection();
+        $stmt = $pdo->query("SELECT id, name, email, role, created_at FROM users");
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
 }

@@ -8,6 +8,15 @@ use App\Models\PersonalAccessToken;
 class UserController
 {
     /**
+     * Lista todos os utilizadores (Apenas Admin)
+     */
+    public function index()
+    {
+        $users = User::all();
+        echo json_encode(['data' => $users]);
+    }
+
+    /**
      * Login do utilizador.
      * Recebe email/password -> Retorna Token.
      */
