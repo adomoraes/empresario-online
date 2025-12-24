@@ -40,6 +40,7 @@ class TestCase extends PHPUnitTestCase
         $_SERVER['REQUEST_METHOD'] = $method;
         $_SERVER['REQUEST_URI'] = $uri;
         $_SERVER['TEST_JSON_BODY'] = $body; // O nosso AppHelper vai ler daqui
+        $_SERVER['REMOTE_ADDR'] = '127.0.0.1'; // Simula um IP local
 
         // Limpar headers antigos
         foreach ($_SERVER as $key => $value) {

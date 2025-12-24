@@ -7,45 +7,32 @@ use PDOException;
 
 class Database
 {
-    // Variável estática para guardar a conexão
-    private static ?PDO $pdo = null;
+    private static ?PDO $connection = null;
 
-    /**
-     * Retorna a instância da conexão PDO.
-     * Se não existir, cria uma nova.
-     */
     public static function getConnection(): PDO
     {
-        // Se já existe uma conexão ativa, devolve-a (Singleton)
-        if (self::$pdo !== null) {
-            return self::$pdo;
+        if (self::$connection === null) {
+            // Tenta pegar do ambiente (definido no phpunit.xml), senão usa o padrão
+            $host = getenv('DB_HOST') ?: 'db';
+            $db   = getenv('DB_NAME') ?: 'meu_banco';
+            $user = getenv('DB_USER') ?: 'user';
+            $pass = getenv('DB_PASS') ?: 'password';
+
+            try {
+                self::$connection = new PDO(
+                    "mysql:host=$host;dbname=$db;charset=utf8mb4",
+                    $user,
+                    $pass,
+                    [
+                        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                        PDO::ATTR_EMULATE_PREPARES => false,
+                    ]
+                );
+            } catch (PDOException $e) {
+                die("Erro de conexão: " . $e->getMessage());
+            }
         }
-
-        try {
-            // Lemos as configurações do ambiente (Docker)
-            $host = getenv('MYSQL_HOST') ?: 'db'; // 'db' é o nome do serviço no docker-compose
-            $db   = getenv('MYSQL_DATABASE') ?: 'meu_banco';
-            $user = getenv('MYSQL_USER') ?: 'user';
-            $pass = getenv('MYSQL_PASSWORD') ?: 'password';
-            $port = getenv('MYSQL_PORT') ?: '3306';
-
-            // DSN (Data Source Name) é a string de conexão
-            $dsn = "mysql:host=$host;port=$port;dbname=$db;charset=utf8mb4";
-
-            // Opções para o PDO
-            $options = [
-                PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION, // Lança erros se o SQL falhar
-                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,       // Devolve arrays associativos ['nome' => 'Joao']
-                PDO::ATTR_EMULATE_PREPARES   => false,                  // Usa prepared statements reais (Segurança)
-            ];
-
-            // Criação da conexão e armazenamento na variável estática
-            self::$pdo = new PDO($dsn, $user, $pass, $options);
-
-            return self::$pdo;
-        } catch (PDOException $e) {
-            // Em produção não devemos mostrar o erro detalhado ao utilizador, mas para dev ajuda
-            throw new PDOException("Erro na conexão com a base de dados: " . $e->getMessage());
-        }
+        return self::$connection;
     }
 }

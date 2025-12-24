@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <phpunit bootstrap="vendor/autoload.php"
          colors="true"
+         verbose="true"
          stopOnFailure="false">
     <testsuites>
         <testsuite name="Feature">
@@ -10,7 +11,8 @@
     <php>
         <env name="DB_HOST" value="db"/>
         <env name="DB_NAME" value="meu_banco_teste"/>
-        <env name="DB_USER" value="user"/>
-        <env name="DB_PASS" value="password"/>
+        <env name="DB_USER" value="root"/>
+        <env name="DB_PASS" value="root"/>
+        <const name="PHPUNIT_RUNNING" value="true"/>
     </php>
 </phpunit>

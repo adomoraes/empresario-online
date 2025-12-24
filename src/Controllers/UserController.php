@@ -4,7 +4,9 @@ namespace App\Controllers;
 
 use App\Models\User;
 use App\Models\PersonalAccessToken;
+use App\Config\Database;
 use App\Config\AppHelper;
+use PDO;
 
 class UserController
 {
@@ -23,38 +25,53 @@ class UserController
      */
     public function login()
     {
+        // 1. Receber dados (Usa o Helper para suportar Testes Unitários)
         $data = AppHelper::getJsonInput();
 
-        // 1. Validação simples
-        if (empty($data['email']) || empty($data['password'])) {
+        $email = $data['email'] ?? '';
+        $password = $data['password'] ?? '';
+
+        if (empty($email) || empty($password)) {
             AppHelper::sendResponse(400, ['error' => 'Email e senha são obrigatórios.']);
+            return;
         }
 
-        // 2. Buscar utilizador pelo email
-        $user = User::findByEmail($data['email']);
+        $pdo = Database::getConnection();
 
-        // 3. Verificar se o utilizador existe E se a senha bate
-        if (!$user || !password_verify($data['password'], $user->password)) {
+        // 2. Buscar utilizador pelo Email
+        $stmt = $pdo->prepare("SELECT id, name, password, role FROM users WHERE email = ?");
+        $stmt->execute([$email]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        // 3. VERIFICAÇÃO DE SEGURANÇA (Onde o erro estava acontecendo)
+        // Se o user não existe OU a senha não bate com o hash -> Erro 401
+        if (!$user || !password_verify($password, $user['password'])) {
             AppHelper::sendResponse(401, ['error' => 'Credenciais inválidas.']);
+            return;
         }
 
-        // 4. Gerar o Token
-        try {
-            $token = PersonalAccessToken::create($user->id, 'Dispositivo Postman');
+        // 4. Gerar Token (Simples)
+        // Nota: Em produção usarias JWT, aqui usamos um token aleatório no banco
+        $token = bin2hex(random_bytes(32)); // 64 caracteres
 
-            AppHelper::sendResponse(200, [
-                'message' => 'Login efetuado com sucesso!',
-                'token' => $token,
-                'user' => [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'role' => $user->role
-                ]
-            ]);
-        } catch (\Exception $e) {
-            AppHelper::sendResponse(500, ['error' => 'Erro ao gerar token: ' . $e->getMessage()]);
-        }
+        // Guardar token no banco
+        // Remove tokens antigos deste user para manter a tabela limpa (opcional, mas recomendado)
+        $pdo->prepare("DELETE FROM personal_access_tokens WHERE user_id = ?")->execute([$user['id']]);
+
+        // Insere o novo
+        $stmtToken = $pdo->prepare("INSERT INTO personal_access_tokens (user_id, token, name) VALUES (?, ?, ?)");
+        $stmtToken->execute([$user['id'], $token, 'AuthToken']);
+
+        // 5. Retornar Sucesso
+        AppHelper::sendResponse(200, [
+            'message' => 'Login efetuado com sucesso!',
+            'token' => $token,
+            'user' => [
+                'id' => $user['id'],
+                'name' => $user['name'],
+                'role' => $user['role']
+            ]
+        ]);
     }
 
     /**
