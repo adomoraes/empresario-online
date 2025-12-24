@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit bootstrap="vendor/autoload.php"
+         colors="true"
+         stopOnFailure="false">
+    <testsuites>
+        <testsuite name="Feature">
+            <directory>tests</directory>
+        </testsuite>
+    </testsuites>
+    <php>
+        <env name="DB_HOST" value="db"/>
+        <env name="DB_NAME" value="meu_banco_teste"/>
+        <env name="DB_USER" value="user"/>
+        <env name="DB_PASS" value="password"/>
+    </php>
+</phpunit>

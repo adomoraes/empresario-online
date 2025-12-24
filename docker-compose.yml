@@ -9,6 +9,9 @@ services:
       - "8080:80"
     volumes:
       - .:/var/www/html
+    # --- ADICIONE ESTA LINHA ---
+    working_dir: /var/www/html
+    # ---------------------------
     depends_on:
       - db
 

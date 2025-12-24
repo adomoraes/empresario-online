@@ -3,13 +3,14 @@
 namespace App\Controllers;
 
 use App\Models\AccessLog;
+use App\Config\AppHelper;
 
 class LogController
 {
     public function index()
     {
         $logs = AccessLog::all();
-        echo json_encode(['data' => $logs]);
+        AppHelper::sendResponse(200, ['data' => $logs]);
     }
 
     /**
@@ -20,10 +21,9 @@ class LogController
     {
         try {
             \App\Models\AccessLog::clearAll();
-            echo json_encode(['message' => 'Todos os logs de acesso foram apagados.']);
+            AppHelper::sendResponse(200, ['message' => 'Todos os logs de acesso foram apagados.']);
         } catch (\Exception $e) {
-            http_response_code(500);
-            echo json_encode(['error' => 'Erro ao limpar logs.']);
+            AppHelper::sendResponse(500, ['error' => 'Erro ao limpar logs.']);
         }
     }
 }

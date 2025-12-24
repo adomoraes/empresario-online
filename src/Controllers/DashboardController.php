@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Config\AppHelper;
 use App\Models\ContentFeed;
 use App\Models\UserInterest;
 use App\Models\UserHistory;
@@ -43,7 +44,7 @@ class DashboardController
             $isPersonalized = false;
         }
 
-        echo json_encode([
+        AppHelper::sendResponse(200, [
             'meta' => [
                 'user' => $user['name'],
                 'personalized' => $isPersonalized,

@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Models\Interview;
+use App\Config\AppHelper;
 
 class InterviewController
 {
@@ -23,10 +24,9 @@ class InterviewController
             // Exemplo: $interviews = Interview::getAllByUserId($_REQUEST['user']['id']);
 
             // Para evitar erros agora, vamos devolver uma mensagem simples
-            echo json_encode(['message' => 'Listagem de entrevistas (Implementar Interview::all no Model)']);
+            AppHelper::sendResponse(200, ['message' => 'Listagem de entrevistas (Implementar Interview::all no Model)']);
         } catch (\Exception $e) {
-            http_response_code(500);
-            echo json_encode(['error' => 'Erro ao buscar dados.']);
+            AppHelper::sendResponse(500, ['error' => 'Erro ao buscar dados.']);
         }
     }
 
@@ -37,13 +37,11 @@ class InterviewController
     public function store()
     {
         $user = $_REQUEST['user'];
-        $input = json_decode(file_get_contents('php://input'), true);
+        $input = AppHelper::getJsonInput();
 
         // Validação básica
         if (empty($input['title']) || empty($input['interviewee'])) {
-            http_response_code(400);
-            echo json_encode(['error' => 'Título e Entrevistado são obrigatórios.']);
-            return;
+            AppHelper::sendResponse(400, ['error' => 'Título e Entrevistado são obrigatórios.']);
         }
 
         try {
@@ -64,14 +62,12 @@ class InterviewController
 
             $id = Interview::create($data);
 
-            http_response_code(201);
-            echo json_encode([
+            AppHelper::sendResponse(201, [
                 'message' => 'Entrevista criada com sucesso!',
                 'id' => $id
             ]);
         } catch (\Exception $e) {
-            http_response_code(500);
-            echo json_encode(['error' => 'Erro ao criar entrevista: ' . $e->getMessage()]);
+            AppHelper::sendResponse(500, ['error' => 'Erro ao criar entrevista: ' . $e->getMessage()]);
         }
     }
 
@@ -82,18 +78,14 @@ class InterviewController
     {
         $id = $_GET['id'] ?? null;
         if (!$id) {
-            http_response_code(400);
-            echo json_encode(['error' => 'ID necessário']);
-            return;
+            AppHelper::sendResponse(400, ['error' => 'ID necessário']);
         }
 
         // 1. Buscar Entrevista (Usa o método find do Model que criámos antes)
         $interview = \App\Models\Interview::find($id);
 
         if (!$interview) {
-            http_response_code(404);
-            echo json_encode(['error' => 'Entrevista não encontrada']);
-            return;
+            AppHelper::sendResponse(404, ['error' => 'Entrevista não encontrada']);
         }
 
         // 2. Descobrir ID de uma categoria desta entrevista para o histórico
@@ -112,6 +104,6 @@ class InterviewController
             );
         }
 
-        echo json_encode(['data' => $interview]);
+        AppHelper::sendResponse(200, ['data' => $interview]);
     }
 }

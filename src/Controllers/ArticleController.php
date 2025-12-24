@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Models\Article;
+use App\Config\AppHelper;
 
 class ArticleController
 {
@@ -11,19 +12,17 @@ class ArticleController
     public function index()
     {
         $articles = Article::all();
-        echo json_encode(['data' => $articles]);
+        AppHelper::sendResponse(200, ['data' => $articles]);
     }
 
     // POST /articles (Admin cria)
     public function store()
     {
         $user = $_REQUEST['user']; // O Admin logado (Autor)
-        $data = json_decode(file_get_contents('php://input'), true);
+        $data = AppHelper::getJsonInput();
 
         if (empty($data['title']) || empty($data['content']) || empty($data['category_id'])) {
-            http_response_code(400);
-            echo json_encode(['error' => 'Título, conteúdo e categoria são obrigatórios.']);
-            return;
+            AppHelper::sendResponse(400, ['error' => 'Título, conteúdo e categoria são obrigatórios.']);
         }
 
         try {
@@ -34,11 +33,9 @@ class ArticleController
                 $data['content']
             );
 
-            http_response_code(201);
-            echo json_encode(['message' => 'Artigo publicado!', 'id' => $id]);
+            AppHelper::sendResponse(201, ['message' => 'Artigo publicado!', 'id' => $id]);
         } catch (\Exception $e) {
-            http_response_code(500);
-            echo json_encode(['error' => 'Erro ao criar artigo.']);
+            AppHelper::sendResponse(500, ['error' => 'Erro ao criar artigo.']);
         }
     }
 
@@ -50,9 +47,7 @@ class ArticleController
     {
         $id = $_GET['id'] ?? null;
         if (!$id) {
-            http_response_code(400);
-            echo json_encode(['error' => 'ID necessário']);
-            return;
+            AppHelper::sendResponse(400, ['error' => 'ID necessário']);
         }
 
         // 1. Buscar Artigo
@@ -62,9 +57,7 @@ class ArticleController
         $article = $stmt->fetch(\PDO::FETCH_ASSOC);
 
         if (!$article) {
-            http_response_code(404);
-            echo json_encode(['error' => 'Artigo não encontrado']);
-            return;
+            AppHelper::sendResponse(404, ['error' => 'Artigo não encontrado']);
         }
 
         // 2. Gravar Histórico (Se estiver logado)
@@ -77,6 +70,6 @@ class ArticleController
             );
         }
 
-        echo json_encode(['data' => $article]);
+        AppHelper::sendResponse(200, ['data' => $article]);
     }
 }

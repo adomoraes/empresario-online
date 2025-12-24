@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Models\UserInterest;
+use App\Config\AppHelper;
 
 class InterestController
 {
@@ -12,39 +13,34 @@ class InterestController
     {
         $user = $_REQUEST['user'];
         $interests = UserInterest::listByUserId($user['id']);
-        echo json_encode(['data' => $interests]);
+        AppHelper::sendResponse(200, ['data' => $interests]);
     }
 
     // POST /interests -> Adicionar interesse
     public function store()
     {
         $user = $_REQUEST['user'];
-        $data = json_decode(file_get_contents('php://input'), true);
+        $data = AppHelper::getJsonInput();
 
         if (empty($data['category_id'])) {
-            http_response_code(400);
-            echo json_encode(['error' => 'ID da categoria obrigatório']);
-            return;
+            AppHelper::sendResponse(400, ['error' => 'ID da categoria obrigatório']);
         }
 
         UserInterest::add($user['id'], $data['category_id']);
-        http_response_code(201);
-        echo json_encode(['message' => 'Interesse adicionado com sucesso!']);
+        AppHelper::sendResponse(201, ['message' => 'Interesse adicionado com sucesso!']);
     }
 
     // DELETE /interests -> Remover interesse
     public function delete()
     {
         $user = $_REQUEST['user'];
-        $data = json_decode(file_get_contents('php://input'), true);
+        $data = AppHelper::getJsonInput();
 
         if (empty($data['category_id'])) {
-            http_response_code(400);
-            echo json_encode(['error' => 'ID da categoria obrigatório']);
-            return;
+            AppHelper::sendResponse(400, ['error' => 'ID da categoria obrigatório']);
         }
 
         UserInterest::remove($user['id'], $data['category_id']);
-        echo json_encode(['message' => 'Interesse removido.']);
+        AppHelper::sendResponse(200, ['message' => 'Interesse removido.']);
     }
 }

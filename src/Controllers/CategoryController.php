@@ -3,25 +3,23 @@
 namespace App\Controllers;
 
 use App\Models\Category;
+use App\Config\AppHelper;
 
 class CategoryController
 {
     public function index()
     {
-        echo json_encode(['data' => Category::all()]);
+        AppHelper::sendResponse(200, ['data' => Category::all()]);
     }
 
     public function store()
     {
-        $data = json_decode(file_get_contents('php://input'), true);
+        $data = AppHelper::getJsonInput();
         if (empty($data['name'])) {
-            http_response_code(400);
-            echo json_encode(['error' => 'Nome da categoria obrigatório']);
-            return;
+            AppHelper::sendResponse(400, ['error' => 'Nome da categoria obrigatório']);
         }
 
         $id = Category::create($data['name']);
-        http_response_code(201);
-        echo json_encode(['message' => 'Categoria criada', 'id' => $id]);
+        AppHelper::sendResponse(201, ['message' => 'Categoria criada', 'id' => $id]);
     }
 }
