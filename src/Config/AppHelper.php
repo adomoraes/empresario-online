@@ -2,29 +2,34 @@
 
 namespace App\Config;
 
+use Exception;
+
+// Uma exceção personalizada para controlarmos o fluxo nos testes
+class HttpResponseException extends Exception {}
+
 class AppHelper
 {
-    /**
-     * Lê o input JSON. Nos testes, podemos injetar dados aqui.
-     */
+
     public static function getJsonInput(): array
     {
         if (isset($_SERVER['TEST_JSON_BODY'])) {
             return $_SERVER['TEST_JSON_BODY'];
         }
-        return json_decode(file_get_contents('php://input'), true) ?? [];
+        $input = json_decode(file_get_contents('php://input'), true);
+        return is_array($input) ? $input : [];
     }
 
-    /**
-     * Envia a resposta. Em teste, apenas retorna o output.
-     */
     public static function sendResponse(int $code, array $data): void
     {
         http_response_code($code);
         echo json_encode($data);
-        // Em vez de exit, usamos return para o teste não parar
-        if (!defined('PHPUNIT_RUNNING')) {
-            exit;
+
+        // Se estivermos em teste, LANÇAMOS EXCEÇÃO para parar a execução
+        if (defined('PHPUNIT_RUNNING')) {
+            throw new HttpResponseException("Response Sent", $code);
         }
+
+        // Se for produção, mata o script
+        exit;
     }
 }

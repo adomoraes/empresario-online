@@ -5,78 +5,97 @@ namespace App\Config;
 class Router
 {
     private array $routes = [];
+    private array $groupStack = [];
 
-    /**
-     * Regista rota GET com middlewares opcionais
-     */
-    public function get(string $path, string $controller, string $action, array $middlewares = []): void
+    public function get(string $uri, string $action)
     {
-        $this->add('GET', $path, $controller, $action, $middlewares);
+        $this->addRoute('GET', $uri, $action);
     }
 
-    /**
-     * Regista rota POST com middlewares opcionais
-     */
-    public function post(string $path, string $controller, string $action, array $middlewares = []): void
+    public function post(string $uri, string $action)
     {
-        $this->add('POST', $path, $controller, $action, $middlewares);
+        $this->addRoute('POST', $uri, $action);
     }
 
-    // --- NOVO: Método PUT ---
-    public function put(string $path, string $controller, string $action, array $middlewares = []): void
+    public function group(array $attributes, callable $callback)
     {
-        $this->add('PUT', $path, $controller, $action, $middlewares);
+        $this->groupStack[] = $attributes;
+        call_user_func($callback, $this);
+        array_pop($this->groupStack);
     }
 
-    // --- NOVO: Método DELETE (Já fica pronto para o futuro) ---
-    public function delete(string $path, string $controller, string $action, array $middlewares = []): void
+    private function addRoute(string $method, string $uri, string $action)
     {
-        $this->add('DELETE', $path, $controller, $action, $middlewares);
-    }
+        // CORREÇÃO: Usamos um array para acumular TODOS os middlewares da pilha
+        $middlewares = [];
 
-    /**
-     * Função interna para guardar a rota
-     * O ERRO ESTAVA PROVAVELMENTE AQUI: Faltava guardar o 'middlewares'
-     */
-    private function add(string $method, string $path, string $controller, string $action, array $middlewares): void
-    {
-        $this->routes["$method|$path"] = [
-            'controller' => $controller,
+        foreach ($this->groupStack as $group) {
+            if (isset($group['before'])) {
+                $middlewares[] = $group['before'];
+            }
+        }
+
+        $this->routes[] = [
+            'method' => $method,
+            'uri'    => $uri,
             'action' => $action,
-            'middlewares' => $middlewares // <--- CRUCIAL: Temos de guardar a lista aqui!
+            'middlewares' => $middlewares // Guardamos a lista completa (ex: [Auth, Admin])
         ];
     }
 
-    /**
-     * Executa a rota
-     */
-    public function dispatch(): void
+    public function dispatch()
     {
-        $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
         $method = $_SERVER['REQUEST_METHOD'];
-        $key = "$method|$uri";
+        $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 
-        if (array_key_exists($key, $this->routes)) {
-            $route = $this->routes[$key];
+        foreach ($this->routes as $route) {
+            if ($route['method'] === $method && $route['uri'] === $uri) {
 
-            // Proteção: Se por acaso a chave não existir, usa um array vazio
-            $middlewares = $route['middlewares'] ?? [];
+                // 1. Executar Middlewares
+                if (!empty($route['middlewares'])) {
+                    foreach ($route['middlewares'] as $middlewareClass) {
+                        if (class_exists($middlewareClass)) {
+                            (new $middlewareClass)->handle();
+                        } else {
+                            $msg = "DEBUG: Middleware não encontrado: $middlewareClass";
+                            fwrite(STDERR, "\n$msg\n"); // <--- IMPRIME NO TERMINAL
+                            AppHelper::sendResponse(500, ['error' => $msg]);
+                            return;
+                        }
+                    }
+                }
 
-            // Executar Middlewares
-            foreach ($middlewares as $middlewareClass) {
-                $middleware = new $middlewareClass();
-                $middleware->handle();
+                // 2. Executar Controller
+                $action = $route['action'];
+
+                if (strpos($action, '@') !== false) {
+                    [$controller, $method] = explode('@', $action);
+                } else {
+                    $controller = $action;
+                    $method = '__invoke';
+                }
+
+                if (class_exists($controller)) {
+                    $controllerInstance = new $controller();
+
+                    if (method_exists($controllerInstance, $method)) {
+                        $controllerInstance->$method();
+                        return;
+                    } else {
+                        $msg = "DEBUG: Método '$method' não encontrado em '$controller'";
+                        fwrite(STDERR, "\n$msg\n"); // <--- IMPRIME NO TERMINAL
+                        AppHelper::sendResponse(500, ['error' => $msg]);
+                        return;
+                    }
+                } else {
+                    $msg = "DEBUG: Controller não encontrado: '$controller'";
+                    fwrite(STDERR, "\n$msg\n"); // <--- IMPRIME NO TERMINAL
+                    AppHelper::sendResponse(500, ['error' => $msg]);
+                    return;
+                }
             }
-
-            // Executar Controller
-            $controllerName = $route['controller'];
-            $action = $route['action'];
-
-            $controller = new $controllerName();
-            $controller->$action();
-        } else {
-            http_response_code(404);
-            echo json_encode(['error' => 'Rota não encontrada (404)']);
         }
+
+        AppHelper::sendResponse(404, ['error' => 'Rota não encontrada: ' . $uri]);
     }
 }

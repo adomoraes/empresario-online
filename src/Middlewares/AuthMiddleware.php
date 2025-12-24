@@ -2,67 +2,56 @@
 
 namespace App\Middlewares;
 
-use App\Models\PersonalAccessToken;
+use App\Config\Database;
+use App\Config\AppHelper;
+use PDO;
 
 class AuthMiddleware
 {
-    /**
-     * O método handle é executado antes do controlador.
-     * Se a autenticação falhar, ele encerra o script (exit).
-     */
-    public function handle(): void
+    public function handle()
     {
-        // 1. Tentar obter o cabeçalho Authorization
-        $headers = $this->getAuthorizationHeader();
+        // 1. Tenta obter headers de forma segura
+        $headers = [];
+        if (function_exists('getallheaders')) {
+            $headers = getallheaders();
+        }
 
-        // 2. Verificar se tem o formato "Bearer <token>"
-        if (!$headers || !preg_match('/Bearer\s(\S+)/', $headers, $matches)) {
-            $this->unauthorized('Token não fornecido ou formato inválido.');
+        // 2. Busca o Header Authorization
+        // Prioridade:
+        // A. getallheaders() (Apache/Produção)
+        // B. $_SERVER['HTTP_AUTHORIZATION'] (Nginx, CLI e PHPUnit)
+        $authHeader = $headers['Authorization'] ?? $_SERVER['HTTP_AUTHORIZATION'] ?? null;
+
+        if (!$authHeader) {
+            AppHelper::sendResponse(401, ['error' => 'Token não fornecido.']);
+            return;
+        }
+
+        // 3. Extrair o Token (Bearer <token>)
+        if (!preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
+            AppHelper::sendResponse(401, ['error' => 'Formato do token inválido.']);
+            return;
         }
 
         $token = $matches[1];
+        $pdo = Database::getConnection();
 
-        // 3. Validar no Banco de Dados
-        $user = PersonalAccessToken::findUserByToken($token);
+        // 4. Validar Token no Banco
+        $stmt = $pdo->prepare("
+            SELECT u.id, u.name, u.email, u.role 
+            FROM personal_access_tokens t
+            JOIN users u ON t.user_id = u.id
+            WHERE t.token = ?
+        ");
+        $stmt->execute([$token]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$user) {
-            $this->unauthorized('Token inválido ou expirado.');
+            AppHelper::sendResponse(401, ['error' => 'Token inválido ou expirado.']);
+            return;
         }
 
-        // 4. (Opcional) Guardar o utilizador numa variável global ou estática
-        // para que o Controller saiba quem está logado.
-        // Aqui usamos uma superglobal personalizada para simplicidade.
+        // 5. Injeta o user na requisição
         $_REQUEST['user'] = $user;
-    }
-
-    /**
-     * Função auxiliar para devolver erro 401 e parar tudo.
-     */
-    private function unauthorized(string $message): void
-    {
-        http_response_code(401);
-        echo json_encode(['error' => $message]);
-        exit; // Mata o processo aqui. O Controller nunca será chamado.
-    }
-
-    /**
-     * Função robusta para apanhar o Header (funciona em Apache/Nginx/Docker)
-     */
-    private function getAuthorizationHeader(): ?string
-    {
-        $headers = null;
-        if (isset($_SERVER['Authorization'])) {
-            $headers = trim($_SERVER["Authorization"]);
-        } else if (isset($_SERVER['HTTP_AUTHORIZATION'])) { // Nginx ou FastCGI
-            $headers = trim($_SERVER["HTTP_AUTHORIZATION"]);
-        } elseif (function_exists('apache_request_headers')) {
-            $requestHeaders = apache_request_headers();
-            // Corrige problemas de maiúsculas/minúsculas
-            $requestHeaders = array_combine(array_map('ucwords', array_keys($requestHeaders)), array_values($requestHeaders));
-            if (isset($requestHeaders['Authorization'])) {
-                $headers = trim($requestHeaders['Authorization']);
-            }
-        }
-        return $headers;
     }
 }

@@ -1,101 +1,27 @@
 <?php
 
-use App\Controllers\UserController;
-use App\Controllers\InterviewController;
-use App\Controllers\ArticleController;
-use App\Controllers\CategoryController;
-use App\Controllers\InterestController;
-use App\Controllers\DashboardController;
-use App\Controllers\LogController;
-use App\Controllers\ImportController;
+use App\Config\Router;
 
-use App\Middlewares\AuthMiddleware;
-use App\Middlewares\AdminMiddleware;
-use App\Middlewares\LogMiddleware;
+$router = new Router();
 
-/** @var \App\Config\Router $router */
+// --- ROTAS PÚBLICAS ---
+$router->post('/login', 'App\Controllers\UserController@login');
+$router->post('/register', 'App\Controllers\UserController@register');
 
-// --- 1. AUTENTICAÇÃO ---
-$router->post('/register', UserController::class, 'register');
-$router->post('/login', UserController::class, 'login', [LogMiddleware::class]);
+$router->get('/article', 'App\Controllers\ArticleController@show');
+$router->get('/interviews', 'App\Controllers\InterviewController@index');
+$router->get('/interview', 'App\Controllers\InterviewController@show');
 
-// --- 2. UTILIZADOR (PROFILE) ---
-$router->get('/me', UserController::class, 'me', [AuthMiddleware::class]);
-$router->put('/profile', UserController::class, 'updateProfile', [
-    AuthMiddleware::class,
-    LogMiddleware::class
-]);
+// --- ROTAS PROTEGIDAS ---
+$router->group(['before' => 'App\Middlewares\AuthMiddleware'], function ($router) {
 
-// --- 3. DASHBOARD E INTERESSES ---
-$router->get('/dashboard', DashboardController::class, 'index', [AuthMiddleware::class]);
-$router->get('/interests', InterestController::class, 'index', [AuthMiddleware::class]);
-$router->post('/interests', InterestController::class, 'store', [AuthMiddleware::class]);
-$router->delete('/interests', InterestController::class, 'delete', [AuthMiddleware::class]);
+    $router->get('/me', 'App\Controllers\UserController@me');
 
-// --- 4. CONTEÚDOS ---
-$router->get('/interviews', InterviewController::class, 'index', [AuthMiddleware::class]);
-$router->post('/interviews', InterviewController::class, 'store', [AuthMiddleware::class]);
+    // --- ROTAS DE ADMIN ---
+    $router->group(['before' => 'App\Middlewares\AdminMiddleware'], function ($router) {
 
-// --- 5. ÁREA ADMINISTRATIVA ---
-// Categorias
-$router->get('/categories', CategoryController::class, 'index');
-$router->post('/categories', CategoryController::class, 'store', [
-    AuthMiddleware::class,
-    AdminMiddleware::class,
-    LogMiddleware::class
-]);
-
-// Artigos
-$router->get('/articles', ArticleController::class, 'index', [
-    AuthMiddleware::class,
-    AdminMiddleware::class
-]);
-$router->post('/articles', ArticleController::class, 'store', [
-    AuthMiddleware::class,
-    AdminMiddleware::class,
-    LogMiddleware::class
-]);
-
-// Importação
-$router->post('/admin/import/interview', ImportController::class, 'import', [
-    AuthMiddleware::class,
-    AdminMiddleware::class,
-    LogMiddleware::class
-]);
-
-// Users CRUD
-$router->get('/admin/users', UserController::class, 'index', [
-    AuthMiddleware::class,
-    AdminMiddleware::class
-]);
-$router->put('/admin/users', UserController::class, 'adminUpdate', [
-    AuthMiddleware::class,
-    AdminMiddleware::class,
-    LogMiddleware::class
-]);
-$router->delete('/admin/users', UserController::class, 'destroy', [
-    AuthMiddleware::class,
-    AdminMiddleware::class,
-    LogMiddleware::class
-]);
-
-// Logs
-$router->get('/admin/logs', LogController::class, 'index', [
-    AuthMiddleware::class,
-    AdminMiddleware::class
-]);
-$router->delete('/admin/logs', LogController::class, 'clear', [
-    AuthMiddleware::class,
-    AdminMiddleware::class,
-    LogMiddleware::class
-]);
-
-// --- 6. LEITURA E HISTÓRICO ---
-$router->get('/article', ArticleController::class, 'show', [
-    AuthMiddleware::class,
-    LogMiddleware::class
-]);
-$router->get('/interview', InterviewController::class, 'show', [
-    AuthMiddleware::class,
-    LogMiddleware::class
-]);
+        $router->post('/articles', 'App\Controllers\ArticleController@store');
+        $router->post('/categories', 'App\Controllers\CategoryController@store');
+        $router->post('/interviews', 'App\Controllers\InterviewController@store');
+    });
+});

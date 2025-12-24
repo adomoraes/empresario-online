@@ -2,29 +2,25 @@
 
 namespace App\Middlewares;
 
+use App\Config\Database;
+use App\Config\AppHelper; // <--- Importante
+use PDO;
+
 class AdminMiddleware
 {
-    public function handle(): void
+    public function handle()
     {
-        // 1. Verificação de Segurança
-        // Este middleware DEVE correr sempre DEPOIS do AuthMiddleware.
-        // Se não houver user no request, algo correu mal na ordem.
+        // O user já foi injetado no $_REQUEST pelo AuthMiddleware
         if (!isset($_REQUEST['user'])) {
-            http_response_code(401);
-            echo json_encode(['error' => 'Acesso negado. Autenticação necessária primeiro.']);
-            exit;
+            AppHelper::sendResponse(401, ['error' => 'Utilizador não autenticado.']);
+            return;
         }
 
         $user = $_REQUEST['user'];
 
-        // 2. Verificar a Role
-        // No schema.sql definimos o default como 'user'. O admin tem de ser 'admin'.
         if ($user['role'] !== 'admin') {
-            http_response_code(403); // 403 Forbidden (Proibido)
-            echo json_encode(['error' => 'Acesso restrito a Administradores.']);
-            exit;
+            AppHelper::sendResponse(403, ['error' => 'Acesso restrito a Administradores.']);
+            return; // O AppHelper em modo teste impede o exit, mas aqui fazemos return para parar o fluxo
         }
-
-        // Se passar aqui, o utilizador é Admin e o código segue para o Controller.
     }
 }
