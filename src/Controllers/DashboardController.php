@@ -2,56 +2,74 @@
 
 namespace App\Controllers;
 
+use App\Config\Database;
 use App\Config\AppHelper;
-use App\Models\ContentFeed;
-use App\Models\UserInterest;
-use App\Models\UserHistory;
+use PDO;
 
 class DashboardController
 {
-
     public function index()
     {
+        // O AuthMiddleware já garantiu que o user existe
         $user = $_REQUEST['user'];
-        $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-        $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 10;
+        $pdo = Database::getConnection();
 
-        // 1. Interesses Explícitos (O que ele SEGUE)
-        // Precisamos ajustar o UserInterest para devolver só IDs
-        $explicitInterests = array_column(UserInterest::listByUserId($user['id']), 'id');
+        // 1. Descobrir a Categoria Favorita
+        $stmt = $pdo->prepare("
+            SELECT category_id, COUNT(*) as total
+            FROM user_history
+            WHERE user_id = ?
+            GROUP BY category_id
+            ORDER BY total DESC
+            LIMIT 1
+        ");
+        $stmt->execute([$user['id']]);
+        $favorite = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        // 2. Interesses Implícitos (O que ele VÊ no histórico)
-        $implicitInterests = UserHistory::getImplicitInterestCategories($user['id']);
+        $data = [];
+        $strategy = '';
 
-        // 3. Fusão Inteligente
-        // Juntamos os dois arrays e removemos duplicados
-        $allCategoryIds = array_unique(array_merge($explicitInterests, $implicitInterests));
+        if ($favorite) {
+            // --- ESTRATÉGIA A: RECOMENDAÇÃO ---
+            $strategy = 'recommendation';
+            $catId = $favorite['category_id'];
 
-        // 4. Buscar Feed
-        $feed = [];
-        $isPersonalized = false;
-        $source = 'General';
+            // Busca Artigos dessa categoria
+            $stmtArt = $pdo->prepare("
+                SELECT id, title, 'article' as type, created_at 
+                FROM articles 
+                WHERE category_id = ? 
+                ORDER BY created_at DESC LIMIT 5
+            ");
+            $stmtArt->execute([$catId]);
+            $articles = $stmtArt->fetchAll(PDO::FETCH_ASSOC);
 
-        if (!empty($allCategoryIds)) {
-            $feed = ContentFeed::getFeedByCategories($allCategoryIds, $page, $limit);
-            $isPersonalized = true;
-            $source = 'Interest + History';
-        }
+            // Busca Entrevistas dessa categoria (via tabela pivot)
+            $stmtInt = $pdo->prepare("
+                SELECT i.id, i.title, 'interview' as type, i.published_at as created_at
+                FROM interviews i
+                JOIN interview_categories ic ON i.id = ic.interview_id
+                WHERE ic.category_id = ?
+                ORDER BY i.published_at DESC LIMIT 5
+            ");
+            $stmtInt->execute([$catId]);
+            $interviews = $stmtInt->fetchAll(PDO::FETCH_ASSOC);
 
-        // 5. Fallback (Se a fusão não der resultados, ex: user novo sem histórico nem follow)
-        if (empty($feed) && $page === 1) {
-            $feed = ContentFeed::getGeneralFeed(1, $limit);
-            $isPersonalized = false;
+            // Junta tudo
+            $data = array_merge($articles, $interviews);
+        } else {
+            // --- ESTRATÉGIA B: MAIS RECENTES (FALLBACK) ---
+            $strategy = 'latest';
+
+            // Últimos 5 artigos gerais
+            $stmt = $pdo->query("SELECT id, title, 'article' as type, created_at FROM articles ORDER BY created_at DESC LIMIT 5");
+            $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
 
         AppHelper::sendResponse(200, [
-            'meta' => [
-                'user' => $user['name'],
-                'personalized' => $isPersonalized,
-                'algorithm_source' => $source, // Debug: diz de onde veio a recomendação
-                'categories_used' => array_values($allCategoryIds) // Debug: IDs usados
-            ],
-            'data' => $feed
+            'strategy' => $strategy,
+            'top_category' => $favorite['category_id'] ?? null,
+            'data' => $data
         ]);
     }
 }

@@ -16,6 +16,7 @@ $router->get('/interview', 'App\Controllers\InterviewController@show');
 $router->group(['before' => 'App\Middlewares\AuthMiddleware'], function ($router) {
 
     $router->get('/me', 'App\Controllers\UserController@me');
+    $router->get('/dashboard', 'App\Controllers\DashboardController@index');
 
     // --- ROTAS DE ADMIN ---
     $router->group(['before' => 'App\Middlewares\AdminMiddleware'], function ($router) {
