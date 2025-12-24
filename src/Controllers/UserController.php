@@ -151,4 +151,62 @@ class UserController
             echo json_encode(['error' => 'Erro ao atualizar. Email pode já existir.']);
         }
     }
+
+    /**
+     * PUT /admin/users
+     * Admin atualiza dados de outro utilizador (ex: mudar role)
+     */
+    public function adminUpdate()
+    {
+        // Validação: AdminMiddleware já garantiu que sou Admin.
+
+        $data = json_decode(file_get_contents('php://input'), true);
+
+        if (empty($data['id'])) {
+            http_response_code(400);
+            echo json_encode(['error' => 'ID do utilizador alvo é obrigatório.']);
+            return;
+        }
+
+        // Impedir que o admin se despromova a si mesmo acidentalmente
+        $currentUser = $_REQUEST['user'];
+        if ($data['id'] == $currentUser['id'] && isset($data['role']) && $data['role'] !== 'admin') {
+            http_response_code(400);
+            echo json_encode(['error' => 'Você não pode remover seu próprio acesso de admin.']);
+            return;
+        }
+
+        User::update($data['id'], $data);
+        echo json_encode(['message' => 'Utilizador atualizado com sucesso.']);
+    }
+
+    /**
+     * DELETE /admin/users
+     * Admin remove um utilizador do sistema.
+     */
+    public function destroy()
+    {
+        $data = json_decode(file_get_contents('php://input'), true);
+
+        if (empty($data['id'])) {
+            http_response_code(400);
+            echo json_encode(['error' => 'ID do utilizador alvo é obrigatório.']);
+            return;
+        }
+
+        // Impedir auto-suicídio
+        $currentUser = $_REQUEST['user'];
+        if ($data['id'] == $currentUser['id']) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Você não pode apagar a sua própria conta aqui.']);
+            return;
+        }
+
+        if (User::delete($data['id'])) {
+            echo json_encode(['message' => 'Utilizador removido do sistema.']);
+        } else {
+            http_response_code(500);
+            echo json_encode(['error' => 'Erro ao remover utilizador.']);
+        }
+    }
 }

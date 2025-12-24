@@ -19,4 +19,13 @@ class AccessLog
         $pdo = Database::getConnection();
         return $pdo->query("SELECT * FROM access_logs ORDER BY created_at DESC LIMIT 100")->fetchAll(\PDO::FETCH_ASSOC);
     }
+
+    /**
+     * Apaga todos os logs do sistema (Limpeza total).
+     */
+    public static function clearAll(): void
+    {
+        $pdo = \App\Config\Database::getConnection();
+        $pdo->exec("TRUNCATE TABLE access_logs");
+    }
 }

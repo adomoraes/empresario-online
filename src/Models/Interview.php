@@ -4,68 +4,91 @@ namespace App\Models;
 
 use App\Config\Database;
 use PDO;
+use PDOException;
 
 class Interview
 {
-
     /**
      * Cria uma entrevista a partir dos dados do JSON.
+     * Utiliza Transações para garantir integridade.
      */
     public static function create(array $data): int
     {
         $pdo = Database::getConnection();
 
-        // Tratamento de campos JSON
-        $imageData = json_encode($data['image'] ?? []);
-        $teamData = json_encode($data['team'] ?? []);
+        try {
+            // 1. Iniciar Transação
+            $pdo->beginTransaction();
 
-        // Gerar slug se não vier (simples)
-        $slug = $data['slug'] ?? strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $data['title'])));
+            // Tratamento de campos JSON e Defaults
+            $imageData = json_encode($data['image'] ?? []);
+            $teamData = json_encode($data['team'] ?? []);
 
-        $sql = "INSERT INTO interviews 
-                (title, slug, interviewee, excerpt, content, published_at, image_data, team_data) 
-                VALUES (:title, :slug, :interviewee, :excerpt, :content, :published_at, :img, :team)";
+            // Gerar slug se não vier. Se o título também não vier, gera um uniqid para não quebrar.
+            $rawTitle = $data['title'] ?? 'Sem Título';
+            $slug = $data['slug'] ?? strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $rawTitle)));
 
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute([
-            ':title'       => $data['title'],
-            ':slug'        => $slug,
-            ':interviewee' => $data['interviewee'], // Extrair só o nome se necessário
-            ':excerpt'     => $data['excerpt'],
-            ':content'     => $data['content'],
-            ':published_at' => $data['published_at'],
-            ':img'         => $imageData,
-            ':team'        => $teamData
-        ]);
+            // Garantir que o slug é único (adicionando timestamp se necessário seria uma melhoria futura)
+            // Aqui confiamos que o banco vai dar erro se for duplicado, e o catch apanha.
 
-        $interviewId = (int) $pdo->lastInsertId();
+            $sql = "INSERT INTO interviews 
+                    (title, slug, interviewee, excerpt, content, published_at, image_data, team_data) 
+                    VALUES (:title, :slug, :interviewee, :excerpt, :content, :published_at, :img, :team)";
 
-        // Processar Categorias (vêm no JSON)
-        if (!empty($data['categories'])) {
-            self::syncCategories($interviewId, $data['categories']);
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute([
+                ':title'       => $data['title'] ?? 'Sem Título',
+                ':slug'        => $slug,
+                ':interviewee' => $data['interviewee'] ?? 'Desconhecido',
+                ':excerpt'     => $data['excerpt'] ?? '',
+                ':content'     => $data['content'] ?? '',
+                ':published_at' => $data['published_at'] ?? date('Y-m-d'), // Data de hoje se falhar
+                ':img'         => $imageData,
+                ':team'        => $teamData
+            ]);
+
+            $interviewId = (int) $pdo->lastInsertId();
+
+            // Processar Categorias
+            if (!empty($data['categories'])) {
+                self::syncCategories($pdo, $interviewId, $data['categories']);
+            }
+
+            // 2. Confirmar Transação
+            $pdo->commit();
+
+            return $interviewId;
+        } catch (PDOException $e) {
+            // Se algo der errado, desfaz tudo
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            throw $e; // Relança o erro para o Controller tratar
         }
-
-        return $interviewId;
     }
 
     /**
      * Associa as categorias.
-     * Verifica se a categoria já existe pelo nome, se não, cria.
+     * Recebe a conexão PDO já aberta na transação.
      */
-    private static function syncCategories(int $interviewId, array $categoriesJson)
+    private static function syncCategories(PDO $pdo, int $interviewId, array $categoriesJson)
     {
-        $pdo = Database::getConnection();
-
         foreach ($categoriesJson as $catData) {
-            // 1. Verificar se categoria existe (pelo slug ou nome)
+            // Validação mínima dos dados da categoria
+            $slug = $catData['slug'] ?? null;
+            $name = $catData['name'] ?? 'Sem Categoria';
+
+            if (!$slug) continue; // Pula se não tiver slug
+
+            // 1. Verificar se categoria existe
             $stmt = $pdo->prepare("SELECT id FROM categories WHERE slug = ?");
-            $stmt->execute([$catData['slug']]);
+            $stmt->execute([$slug]);
             $catId = $stmt->fetchColumn();
 
             // 2. Se não existe, cria
             if (!$catId) {
                 $stmtInsert = $pdo->prepare("INSERT INTO categories (name, slug) VALUES (?, ?)");
-                $stmtInsert->execute([$catData['name'], $catData['slug']]);
+                $stmtInsert->execute([$name, $slug]);
                 $catId = $pdo->lastInsertId();
             }
 
@@ -73,5 +96,36 @@ class Interview
             $stmtPivot = $pdo->prepare("INSERT IGNORE INTO interview_categories (interview_id, category_id) VALUES (?, ?)");
             $stmtPivot->execute([$interviewId, $catId]);
         }
+    }
+
+    /**
+     * Lista todas as entrevistas (Para o index do Controller).
+     * Opcional: Filtra por user_id se passarmos o argumento.
+     */
+    public static function all(?int $userId = null): array
+    {
+        $pdo = Database::getConnection();
+
+        // Query básica. 
+        // Nota: Como a entrevista não tem "user_id" direto (é feita pelo admin), 
+        // o filtro por user_id aqui só faria sentido se filtrássemos por INTERESSES.
+        // Por enquanto, vamos retornar tudo ordenado por data.
+
+        $sql = "SELECT id, title, slug, interviewee, published_at, created_at 
+                FROM interviews 
+                ORDER BY published_at DESC";
+
+        return $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Busca uma entrevista específica pelo ID (Útil para detalhes).
+     */
+    public static function find(int $id)
+    {
+        $pdo = Database::getConnection();
+        $stmt = $pdo->prepare("SELECT * FROM interviews WHERE id = ?");
+        $stmt->execute([$id]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 }

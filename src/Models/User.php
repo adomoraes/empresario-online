@@ -81,4 +81,47 @@ class User
         $stmt = $pdo->query("SELECT id, name, email, role, created_at FROM users");
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
+
+    /**
+     * Atualiza dados de QUALQUER utilizador (Admin mode).
+     * Permite mudar inclusive a ROLE.
+     */
+    public static function update(int $id, array $data): bool
+    {
+        $pdo = \App\Config\Database::getConnection();
+
+        // Construção dinâmica da query para atualizar apenas o que foi enviado
+        $fields = [];
+        $params = [];
+
+        if (!empty($data['name'])) {
+            $fields[] = 'name = ?';
+            $params[] = $data['name'];
+        }
+        if (!empty($data['role'])) { // <--- O poder de promover users
+            $fields[] = 'role = ?';
+            $params[] = $data['role'];
+        }
+
+        // Se não houver campos para atualizar, retorna
+        if (empty($fields)) {
+            return false;
+        }
+
+        $params[] = $id; // ID vai no final para o WHERE
+        $sql = "UPDATE users SET " . implode(', ', $fields) . " WHERE id = ?";
+
+        $stmt = $pdo->prepare($sql);
+        return $stmt->execute($params);
+    }
+
+    /**
+     * Remove um utilizador pelo ID.
+     */
+    public static function delete(int $id): bool
+    {
+        $pdo = \App\Config\Database::getConnection();
+        $stmt = $pdo->prepare("DELETE FROM users WHERE id = ?");
+        return $stmt->execute([$id]);
+    }
 }
