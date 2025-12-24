@@ -41,4 +41,42 @@ class ArticleController
             echo json_encode(['error' => 'Erro ao criar artigo.']);
         }
     }
+
+    /**
+     * GET /article?id=1
+     * Lê um artigo e grava no histórico.
+     */
+    public function show()
+    {
+        $id = $_GET['id'] ?? null;
+        if (!$id) {
+            http_response_code(400);
+            echo json_encode(['error' => 'ID necessário']);
+            return;
+        }
+
+        // 1. Buscar Artigo
+        $pdo = \App\Config\Database::getConnection();
+        $stmt = $pdo->prepare("SELECT * FROM articles WHERE id = ?");
+        $stmt->execute([$id]);
+        $article = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        if (!$article) {
+            http_response_code(404);
+            echo json_encode(['error' => 'Artigo não encontrado']);
+            return;
+        }
+
+        // 2. Gravar Histórico (Se estiver logado)
+        if (isset($_REQUEST['user'])) {
+            \App\Models\UserHistory::record(
+                $_REQUEST['user']['id'],
+                $article['category_id'],
+                'article',
+                $id
+            );
+        }
+
+        echo json_encode(['data' => $article]);
+    }
 }

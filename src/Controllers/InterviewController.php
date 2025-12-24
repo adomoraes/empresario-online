@@ -74,4 +74,44 @@ class InterviewController
             echo json_encode(['error' => 'Erro ao criar entrevista: ' . $e->getMessage()]);
         }
     }
+
+    /**
+     * GET /interview?id=1
+     */
+    public function show()
+    {
+        $id = $_GET['id'] ?? null;
+        if (!$id) {
+            http_response_code(400);
+            echo json_encode(['error' => 'ID necessário']);
+            return;
+        }
+
+        // 1. Buscar Entrevista (Usa o método find do Model que criámos antes)
+        $interview = \App\Models\Interview::find($id);
+
+        if (!$interview) {
+            http_response_code(404);
+            echo json_encode(['error' => 'Entrevista não encontrada']);
+            return;
+        }
+
+        // 2. Descobrir ID de uma categoria desta entrevista para o histórico
+        $pdo = \App\Config\Database::getConnection();
+        $stmt = $pdo->prepare("SELECT category_id FROM interview_categories WHERE interview_id = ? LIMIT 1");
+        $stmt->execute([$id]);
+        $catId = $stmt->fetchColumn();
+
+        // 3. Gravar Histórico
+        if ($catId && isset($_REQUEST['user'])) {
+            \App\Models\UserHistory::record(
+                $_REQUEST['user']['id'],
+                $catId,
+                'interview',
+                $id
+            );
+        }
+
+        echo json_encode(['data' => $interview]);
+    }
 }

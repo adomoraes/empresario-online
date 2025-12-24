@@ -59,17 +59,17 @@ $router->put('/profile', UserController::class, 'updateProfile', [
 
 
 // --- 3. DASHBOARD E INTERESSES (USER EXPERIENCE) ---
-// O Feed personalizado misturando Artigos e Entrevistas
+// O Feed personalizado misturando Artigos e Entrevistas (Baseado em Interesses + Histórico)
 $router->get('/dashboard', DashboardController::class, 'index', [AuthMiddleware::class]);
 
-// Gestão de Interesses (Seguir Categorias)
+// Gestão de Interesses (Seguir Categorias explicitamente)
 $router->get('/interests', InterestController::class, 'index', [AuthMiddleware::class]);
 $router->post('/interests', InterestController::class, 'store', [AuthMiddleware::class]);
 $router->delete('/interests', InterestController::class, 'delete', [AuthMiddleware::class]);
 
 
-// --- 4. CONTEÚDOS (ENTREVISTAS) ---
-// Listar entrevistas do utilizador (ou geral, dependendo da lógica do controller)
+// --- 4. CONTEÚDOS (LISTAGEM GERAL) ---
+// Listar entrevistas (Geral)
 $router->get('/interviews', InterviewController::class, 'index', [AuthMiddleware::class]);
 // Criar entrevista manualmente (Simples)
 $router->post('/interviews', InterviewController::class, 'store', [AuthMiddleware::class]);
@@ -78,7 +78,7 @@ $router->post('/interviews', InterviewController::class, 'store', [AuthMiddlewar
 // --- 5. ÁREA ADMINISTRATIVA ---
 
 // A. Categorias (Base para tudo)
-$router->get('/categories', CategoryController::class, 'index'); // Público para facilitar selects no frontend
+$router->get('/categories', CategoryController::class, 'index'); // Público
 $router->post('/categories', CategoryController::class, 'store', [
     AuthMiddleware::class,
     AdminMiddleware::class, // Só Admin cria
@@ -132,6 +132,22 @@ $router->get('/admin/logs', LogController::class, 'index', [
 $router->delete('/admin/logs', LogController::class, 'clear', [
     AuthMiddleware::class,
     AdminMiddleware::class,
+    LogMiddleware::class
+]);
+
+
+// --- 6. LEITURA E HISTÓRICO (NOVO) ---
+// Estas rotas mostram o detalhe E gravam o histórico de visualização para o algoritmo
+
+// Ler Artigo: GET /article?id=1
+$router->get('/article', ArticleController::class, 'show', [
+    AuthMiddleware::class, // Auth necessário para saber a quem atribuir o histórico
+    LogMiddleware::class
+]);
+
+// Ler Entrevista: GET /interview?id=1
+$router->get('/interview', InterviewController::class, 'show', [
+    AuthMiddleware::class,
     LogMiddleware::class
 ]);
 

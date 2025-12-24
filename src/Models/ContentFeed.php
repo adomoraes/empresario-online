@@ -9,14 +9,21 @@ class ContentFeed
 {
 
     /**
-     * Busca o Feed Personalizado com Paginação.
+     * Busca conteúdo baseado numa lista de Categorias (Array de IDs).
+     * Ex: [1, 2, 5] (Vindos de interesses explícitos ou histórico)
      */
-    public static function getPersonalizedFeed(int $userId, int $page = 1, int $limit = 10): array
+    public static function getFeedByCategories(array $categoryIds, int $page = 1, int $limit = 10): array
     {
+        if (empty($categoryIds)) {
+            return [];
+        }
+
         $pdo = Database::getConnection();
         $offset = ($page - 1) * $limit;
 
-        // Query Union (User Interests)
+        // Transformar array [1, 2] em string "1,2" para o SQL IN
+        $idsStr = implode(',', array_map('intval', $categoryIds));
+
         $sql = "
             SELECT * FROM (
                 SELECT 
@@ -24,8 +31,7 @@ class ContentFeed
                     'article' as content_type, c.name as category_name, c.slug as category_slug
                 FROM articles a
                 JOIN categories c ON a.category_id = c.id
-                JOIN user_interests ui ON ui.category_id = c.id
-                WHERE ui.user_id = :uid1
+                WHERE a.category_id IN ($idsStr)
 
                 UNION ALL
 
@@ -35,17 +41,13 @@ class ContentFeed
                 FROM interviews i
                 JOIN interview_categories ic ON i.id = ic.interview_id
                 JOIN categories c ON ic.category_id = c.id
-                JOIN user_interests ui ON ui.category_id = c.id
-                WHERE ui.user_id = :uid2
+                WHERE ic.category_id IN ($idsStr)
             ) as feed
             ORDER BY date DESC
             LIMIT :limit OFFSET :offset
         ";
 
         $stmt = $pdo->prepare($sql);
-        // BindValue é necessário para LIMIT e OFFSET funcionarem como inteiros no PDO MySQL
-        $stmt->bindValue(':uid1', $userId, PDO::PARAM_INT);
-        $stmt->bindValue(':uid2', $userId, PDO::PARAM_INT);
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
         $stmt->execute();
@@ -53,39 +55,23 @@ class ContentFeed
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    /**
-     * Busca um Feed Geral (Últimas novidades) para quando não há personalização.
-     */
+    // Mantém o getGeneralFeed() igual ao passo anterior...
     public static function getGeneralFeed(int $page = 1, int $limit = 10): array
     {
+        // ... (código igual ao anterior) ...
         $pdo = Database::getConnection();
         $offset = ($page - 1) * $limit;
-
-        // Mesma lógica, mas SEM o JOIN com user_interests
-        $sql = "
-            SELECT * FROM (
-                SELECT 
-                    a.id, a.title, LEFT(a.content, 150) as excerpt, a.created_at as date, 
-                    'article' as content_type, c.name as category_name, c.slug as category_slug
-                FROM articles a
-                LEFT JOIN categories c ON a.category_id = c.id
-
+        $sql = "SELECT * FROM (
+                SELECT a.id, a.title, LEFT(a.content, 150) as excerpt, a.created_at as date, 'article' as content_type, c.name as cat_name, c.slug as cat_slug 
+                FROM articles a LEFT JOIN categories c ON a.category_id = c.id
                 UNION ALL
-
-                SELECT 
-                    i.id, i.title, i.excerpt, i.published_at as date, 
-                    'interview' as content_type, 'Múltiplas' as category_name, '' as category_slug
+                SELECT i.id, i.title, i.excerpt, i.published_at as date, 'interview' as content_type, 'Várias', '' 
                 FROM interviews i
-            ) as feed
-            ORDER BY date DESC
-            LIMIT :limit OFFSET :offset
-        ";
-
+            ) as feed ORDER BY date DESC LIMIT :limit OFFSET :offset";
         $stmt = $pdo->prepare($sql);
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
         $stmt->execute();
-
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 }
