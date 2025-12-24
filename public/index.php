@@ -13,6 +13,7 @@ use App\Middlewares\LogMiddleware;
 use App\Controllers\InterestController;
 use App\Controllers\DashboardController;
 use App\Controllers\ImportController;
+use App\Controllers\ArticleController;
 
 // 2. Configurações Globais (CORS e JSON)
 header('Content-Type: application/json');
@@ -40,6 +41,17 @@ $router->get('/me', UserController::class, 'me', [AuthMiddleware::class]);
 $router->get('/users', UserController::class, 'index', [
     AuthMiddleware::class,
     AdminMiddleware::class
+]);
+// --- GESTÃO DE ARTIGOS (ADMIN) ---
+$router->get('/articles', ArticleController::class, 'index', [
+    App\Middlewares\AuthMiddleware::class,
+    App\Middlewares\AdminMiddleware::class
+]);
+
+$router->post('/articles', ArticleController::class, 'store', [
+    App\Middlewares\AuthMiddleware::class,
+    App\Middlewares\AdminMiddleware::class,
+    App\Middlewares\LogMiddleware::class
 ]);
 
 // --- ROTAS USER (PROFILE) ---
