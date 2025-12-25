@@ -1,1 +1,1 @@
-CREATE DATABASE IF NOT EXISTS meu_banco_test;
+CREATE DATABASE IF NOT EXISTS meu_banco_teste;

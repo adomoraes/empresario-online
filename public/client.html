@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meu Portal de Notícias</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .hidden { display: none; }
+        .card-type-article { border-left: 5px solid #0d6efd; }
+        .card-type-interview { border-left: 5px solid #198754; }
+    </style>
+</head>
+<body class="bg-light">
+
+<div class="container mt-5">
+    
+    <div id="login-section" class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-body">
+                    <h3 class="text-center mb-4">Entrar no Portal</h3>
+                    <div class="mb-3">
+                        <label>Email</label>
+                        <input type="email" id="email" class="form-control" value="user@teste.com">
+                    </div>
+                    <div class="mb-3">
+                        <label>Senha</label>
+                        <input type="password" id="password" class="form-control" value="123">
+                    </div>
+                    <button onclick="login()" class="btn btn-primary w-100">Entrar</button>
+                    <div id="login-error" class="text-danger mt-2 text-center"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="dashboard-section" class="hidden">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Olá, <span id="user-name">User</span>! 👋</h1>
+            <button onclick="logout()" class="btn btn-outline-danger btn-sm">Sair</button>
+        </div>
+
+        <div class="alert alert-info">
+            <strong>Motor de Recomendação:</strong> 
+            <span id="strategy-display">A carregar...</span>
+        </div>
+
+        <div id="content-list" class="row"></div>
+    </div>
+
+</div>
+
+<script>
+    // IMPORTANTE: Ajusta a porta se o teu docker rodar noutra (ex: 8080)
+    const API_URL = 'http://localhost:8080'; 
+
+    if (localStorage.getItem('token')) {
+        loadDashboard();
+    }
+
+    async function login() {
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+
+        try {
+            const res = await fetch(`${API_URL}/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+            const data = await res.json();
+
+            if (res.status === 200) {
+                localStorage.setItem('token', data.token);
+                localStorage.setItem('user_name', data.user.name);
+                loadDashboard();
+            } else {
+                document.getElementById('login-error').innerText = data.error || 'Erro ao entrar';
+            }
+        } catch (e) {
+            console.error(e);
+            document.getElementById('login-error').innerText = 'Erro de conexão. Confere se a porta 8000 está certa.';
+        }
+    }
+
+    function logout() {
+        localStorage.removeItem('token');
+        location.reload();
+    }
+
+    async function loadDashboard() {
+        document.getElementById('login-section').classList.add('hidden');
+        document.getElementById('dashboard-section').classList.remove('hidden');
+        document.getElementById('user-name').innerText = localStorage.getItem('user_name');
+
+        const token = localStorage.getItem('token');
+
+        try {
+            const res = await fetch(`${API_URL}/dashboard`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            
+            if (res.status === 401) { logout(); return; }
+
+            const response = await res.json();
+            renderContent(response);
+
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    function renderContent(apiResponse) {
+        const strategyLabel = document.getElementById('strategy-display');
+        if (apiResponse.strategy === 'recommendation') {
+            strategyLabel.innerHTML = `Identificámos que gostas da Categoria <strong>ID ${apiResponse.top_category}</strong>!`;
+            strategyLabel.parentElement.className = 'alert alert-success';
+        } else {
+            strategyLabel.innerHTML = `Ainda não tens histórico suficiente. Aqui estão as novidades:`;
+            strategyLabel.parentElement.className = 'alert alert-secondary';
+        }
+
+        const container = document.getElementById('content-list');
+        container.innerHTML = '';
+
+        apiResponse.data.forEach(item => {
+            const typeLabel = item.type === 'article' ? 'Artigo' : 'Entrevista';
+            const cardClass = `card-type-${item.type}`;
+            
+            const html = `
+                <div class="col-md-6 mb-3">
+                    <div class="card h-100 shadow-sm ${cardClass}">
+                        <div class="card-body">
+                            <div class="badge bg-secondary mb-2">${typeLabel}</div>
+                            <h5 class="card-title">${item.title}</h5>
+                            <button class="btn btn-sm btn-outline-primary" onclick="readContent('${item.type}', ${item.id})">Ler Mais</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.innerHTML += html;
+        });
+    }
+
+    function readContent(type, id) {
+        // Simula leitura chamando a API para gerar histórico
+        const token = localStorage.getItem('token');
+        // Nota: A API de 'show' (ex: /article?id=1) não exige token obrigatoriamente, 
+        // mas se enviarmos o Header, ela grava o histórico!
+        fetch(`${API_URL}/${type}?id=${id}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        }).then(() => {
+            alert(`Lido! Histórico atualizado. Recarrega a página para ver se a recomendação muda.`);
+        });
+    }
+</script>
+
+</body>
+</html>
