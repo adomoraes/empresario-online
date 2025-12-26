@@ -46,7 +46,12 @@ class CategoryController
             return;
         }
 
-        $slug = strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $data['name'])));
+        // 1. Transliterar (converte 'Inteligência' para 'Inteligencia')
+        $cleanName = iconv('UTF-8', 'ASCII//TRANSLIT', $data['name']);
+
+        // 2. Gerar Slug (converte para minusculas e remove caracteres estranhos)
+        $slug = strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $cleanName), '-'));
+        // ---------------------
 
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare("INSERT INTO categories (name, slug) VALUES (?, ?)");
@@ -54,7 +59,11 @@ class CategoryController
         try {
             $stmt->execute([$data['name'], $slug]);
             AppHelper::sendResponse(201, ['message' => 'Categoria criada', 'id' => $pdo->lastInsertId()]);
+        } catch (\App\Config\HttpResponseException $e) {
+            // Se for a nossa exceção de "Teste Terminado com Sucesso", deixamo-la passar!
+            throw $e;
         } catch (\Exception $e) {
+            // Qualquer outra exceção (ex: duplicado no banco) vira erro 400
             AppHelper::sendResponse(400, ['error' => 'Erro ao criar categoria (possível duplicado)']);
         }
     }

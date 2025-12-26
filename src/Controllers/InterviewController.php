@@ -190,7 +190,6 @@ class InterviewController
 
     private function tryIdentifyUser()
     {
-        // ... (Mesma lógica do ArticleController, copia ou cria um Helper/Trait para isto depois)
         $headers = [];
         if (function_exists('getallheaders')) {
             $headers = getallheaders();
@@ -230,12 +229,15 @@ class InterviewController
     public function update()
     {
         $data = AppHelper::getJsonInput();
+
+        // Validação
         if (empty($data['id']) || empty($data['title'])) {
-            AppHelper::sendResponse(400, ['error' => 'Dados incompletos']);
+            AppHelper::sendResponse(400, ['error' => 'Dados incompletos (id, title são obrigatórios)']);
             return;
         }
 
         try {
+            // Chama o método que acabámos de criar no Model
             \App\Models\Interview::update($data['id'], $data);
             AppHelper::sendResponse(200, ['message' => 'Entrevista atualizada']);
         } catch (\Exception $e) {
@@ -254,6 +256,7 @@ class InterviewController
     public function destroy()
     {
         $data = AppHelper::getJsonInput();
+
         if (empty($data['id'])) {
             AppHelper::sendResponse(400, ['error' => 'ID obrigatório']);
             return;

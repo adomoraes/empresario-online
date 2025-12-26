@@ -139,9 +139,10 @@ class Interview
         try {
             $pdo->beginTransaction();
 
-            // 1. Atualizar dados básicos
+            // 1. Gerar slug a partir do novo título
             $slug = strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $data['title'])));
 
+            // 2. Query de Update
             $sql = "UPDATE interviews 
                     SET title = ?, slug = ?, interviewee = ?, content = ? 
                     WHERE id = ?";
@@ -155,16 +156,18 @@ class Interview
                 $id
             ]);
 
-            // 2. Atualizar Categorias (Sync: Apagar antigas -> Inserir novas)
+            // 3. Atualizar Categorias (Sync: Apagar antigas -> Inserir novas)
             if (isset($data['category_ids']) && is_array($data['category_ids'])) {
                 // Remove ligações antigas
                 $stmtDel = $pdo->prepare("DELETE FROM interview_categories WHERE interview_id = ?");
                 $stmtDel->execute([$id]);
 
-                // Insere as novas
-                $stmtIns = $pdo->prepare("INSERT INTO interview_categories (interview_id, category_id) VALUES (?, ?)");
-                foreach ($data['category_ids'] as $catId) {
-                    $stmtIns->execute([$id, $catId]);
+                // Insere as novas, se houver
+                if (!empty($data['category_ids'])) {
+                    $stmtIns = $pdo->prepare("INSERT INTO interview_categories (interview_id, category_id) VALUES (?, ?)");
+                    foreach ($data['category_ids'] as $catId) {
+                        $stmtIns->execute([$id, $catId]);
+                    }
                 }
             }
 
@@ -176,11 +179,12 @@ class Interview
         }
     }
 
+    /**
+     * Remove uma entrevista pelo ID.
+     */
     public static function delete(int $id): bool
     {
         $pdo = Database::getConnection();
-        // O DELETE CASCADE configurado no banco deve tratar das tabelas pivot, 
-        // mas o comando direto é seguro.
         $stmt = $pdo->prepare("DELETE FROM interviews WHERE id = ?");
         return $stmt->execute([$id]);
     }

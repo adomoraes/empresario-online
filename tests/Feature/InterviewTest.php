@@ -56,4 +56,44 @@ class InterviewTest extends TestCase
         $this->assertEquals(200, $response['status']);
         $this->assertEquals('Design', $response['body']['data']['categories'][0]['name']);
     }
+
+    public function test_admin_can_update_interview()
+    {
+        // 1. Setup
+        $this->pdo->exec("INSERT INTO interviews (id, title, slug, interviewee) VALUES (10, 'Old Interview', 'old', 'Old Guy')");
+        $token = $this->authenticateUser('admin');
+
+        // 2. Ação: Mudar título e Entrevistado
+        $response = $this->call('PUT', '/interviews', [
+            'id' => 10,
+            'title' => 'New Title',
+            'interviewee' => 'New Guy',
+            'category_ids' => [] // Array vazio limpa categorias
+        ], ['Authorization' => "Bearer $token"]);
+
+        $this->assertEquals(200, $response['status']);
+
+        // 3. Verificar Banco
+        $stmt = $this->pdo->prepare("SELECT title, interviewee FROM interviews WHERE id = 10");
+        $stmt->execute();
+        $row = $stmt->fetch();
+        $this->assertEquals('New Title', $row['title']);
+        $this->assertEquals('New Guy', $row['interviewee']);
+    }
+
+    public function test_admin_can_delete_interview()
+    {
+        $this->pdo->exec("INSERT INTO interviews (id, title, slug, interviewee) VALUES (20, 'To Delete', 'del', 'Guy')");
+        $token = $this->authenticateUser('admin');
+
+        $response = $this->call('DELETE', '/interviews', [
+            'id' => 20
+        ], ['Authorization' => "Bearer $token"]);
+
+        $this->assertEquals(200, $response['status']);
+
+        $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM interviews WHERE id = 20");
+        $stmt->execute();
+        $this->assertEquals(0, $stmt->fetchColumn());
+    }
 }

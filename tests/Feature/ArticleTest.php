@@ -83,4 +83,53 @@ class ArticleTest extends TestCase
         $this->assertNotEmpty($history, 'O histórico não foi gravado!');
         $this->assertEquals(99, $history['category_id']);
     }
+
+    public function test_admin_can_update_article()
+    {
+        // 1. Setup: Criar Categoria e Artigo
+        $this->pdo->exec("INSERT INTO categories (id, name, slug) VALUES (1, 'Tech', 'tech')");
+        $this->pdo->exec("INSERT INTO users (id, name, email, password) VALUES (10, 'Author', 'a@a.com', '123')");
+        $this->pdo->exec("INSERT INTO articles (id, title, content, category_id, user_id) VALUES (1, 'Velho Titulo', 'Conteudo...', 1, 10)");
+
+        $token = $this->authenticateUser('admin');
+
+        // 2. Ação: PUT /articles
+        $response = $this->call('PUT', '/articles', [
+            'id' => 1,
+            'title' => 'Novo Titulo Editado',
+            'content' => 'Conteúdo atualizado',
+            'category_id' => 1
+        ], ['Authorization' => "Bearer $token"]);
+
+        // 3. Asserts
+        $this->assertEquals(200, $response['status']);
+
+        // Verificar no banco
+        $stmt = $this->pdo->prepare("SELECT title FROM articles WHERE id = 1");
+        $stmt->execute();
+        $this->assertEquals('Novo Titulo Editado', $stmt->fetchColumn());
+    }
+
+    public function test_admin_can_delete_article()
+    {
+        // 1. Setup
+        $this->pdo->exec("INSERT INTO categories (id, name, slug) VALUES (1, 'Tech', 'tech')");
+        $this->pdo->exec("INSERT INTO users (id, name, email, password) VALUES (10, 'Author', 'a@a.com', '123')");
+        $this->pdo->exec("INSERT INTO articles (id, title, content, category_id, user_id) VALUES (50, 'Artigo Lixo', '...', 1, 10)");
+
+        $token = $this->authenticateUser('admin');
+
+        // 2. Ação: DELETE /articles
+        $response = $this->call('DELETE', '/articles', [
+            'id' => 50
+        ], ['Authorization' => "Bearer $token"]);
+
+        // 3. Asserts
+        $this->assertEquals(200, $response['status']);
+
+        // Verificar que sumiu do banco
+        $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM articles WHERE id = 50");
+        $stmt->execute();
+        $this->assertEquals(0, $stmt->fetchColumn());
+    }
 }
