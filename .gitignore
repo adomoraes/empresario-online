@@ -1,4 +1,6 @@
 vendor/
 .env
 .DS_Store
+.lock
+src/sql
 docker/mysql-data/
