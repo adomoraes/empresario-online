@@ -33,6 +33,34 @@ class Article
     }
 
     /**
+     * Atualiza um artigo existente.
+     */
+    public static function update(int $id, string $title, string $content, ?int $categoryId): bool
+    {
+        $pdo = Database::getConnection();
+
+        // Se quisermos atualizar o slug quando o título muda:
+        $slug = strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $title)));
+
+        $sql = "UPDATE articles 
+                SET title = ?, content = ?, category_id = ? 
+                WHERE id = ?";
+
+        $stmt = $pdo->prepare($sql);
+        return $stmt->execute([$title, $content, $categoryId, $id]);
+    }
+
+    /**
+     * Remove um artigo.
+     */
+    public static function delete(int $id): bool
+    {
+        $pdo = Database::getConnection();
+        $stmt = $pdo->prepare("DELETE FROM articles WHERE id = ?");
+        return $stmt->execute([$id]);
+    }
+
+    /**
      * Lista todos os artigos (Para o Admin gerir)
      */
     public static function all(): array

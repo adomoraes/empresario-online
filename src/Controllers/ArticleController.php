@@ -142,4 +142,68 @@ class ArticleController
 
         AppHelper::sendResponse(201, ['message' => 'Artigo criado', 'id' => $pdo->lastInsertId()]);
     }
+
+    #[OA\Put(
+        path: '/articles',
+        tags: ['Admin'],
+        summary: 'Atualiza um artigo',
+        security: [['bearerAuth' => []]],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['id', 'title', 'content'],
+                properties: [
+                    new OA\Property(property: 'id', type: 'integer'),
+                    new OA\Property(property: 'title', type: 'string'),
+                    new OA\Property(property: 'content', type: 'string'),
+                    new OA\Property(property: 'category_id', type: 'integer')
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: 'Atualizado'),
+            new OA\Response(response: 400, description: 'Erro')
+        ]
+    )]
+    public function update()
+    {
+        $data = AppHelper::getJsonInput();
+
+        if (empty($data['id']) || empty($data['title']) || empty($data['content'])) {
+            AppHelper::sendResponse(400, ['error' => 'ID, Título e Conteúdo são obrigatórios']);
+            return;
+        }
+
+        if (\App\Models\Article::update($data['id'], $data['title'], $data['content'], $data['category_id'] ?? null)) {
+            AppHelper::sendResponse(200, ['message' => 'Artigo atualizado com sucesso']);
+        } else {
+            AppHelper::sendResponse(500, ['error' => 'Erro ao atualizar artigo']);
+        }
+    }
+
+    #[OA\Delete(
+        path: '/articles',
+        tags: ['Admin'],
+        summary: 'Remove um artigo',
+        security: [['bearerAuth' => []]],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(properties: [new OA\Property(property: 'id', type: 'integer')])
+        ),
+        responses: [new OA\Response(response: 200, description: 'Removido')]
+    )]
+    public function destroy()
+    {
+        $data = AppHelper::getJsonInput();
+        if (empty($data['id'])) {
+            AppHelper::sendResponse(400, ['error' => 'ID obrigatório']);
+            return;
+        }
+
+        if (\App\Models\Article::delete($data['id'])) {
+            AppHelper::sendResponse(200, ['message' => 'Artigo removido']);
+        } else {
+            AppHelper::sendResponse(500, ['error' => 'Erro ao remover']);
+        }
+    }
 }

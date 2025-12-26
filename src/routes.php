@@ -23,9 +23,20 @@ $router->group(['before' => 'App\Middlewares\AuthMiddleware'], function ($router
     // --- ROTAS DE ADMIN ---
     $router->group(['before' => 'App\Middlewares\AdminMiddleware'], function ($router) {
 
+        // Artigos
         $router->post('/articles', 'App\Controllers\ArticleController@store');
+        $router->put('/articles', 'App\Controllers\ArticleController@update');
+        $router->delete('/articles', 'App\Controllers\ArticleController@destroy');
+
+        // Categorias
         $router->post('/categories', 'App\Controllers\CategoryController@store');
+        $router->put('/categories', 'App\Controllers\CategoryController@update');
+        $router->delete('/categories', 'App\Controllers\CategoryController@destroy');
+
+        // Entrevistas
         $router->post('/interviews', 'App\Controllers\InterviewController@store');
+        $router->put('/interviews', 'App\Controllers\InterviewController@update');
+        $router->delete('/interviews', 'App\Controllers\InterviewController@destroy');
 
         // 1. Gestão de Utilizadores (UserController)
         $router->get('/admin/users', 'App\Controllers\UserController@index');       // Listar todos

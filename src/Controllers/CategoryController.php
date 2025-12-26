@@ -58,4 +58,61 @@ class CategoryController
             AppHelper::sendResponse(400, ['error' => 'Erro ao criar categoria (possível duplicado)']);
         }
     }
+
+    #[OA\Put(
+        path: '/categories',
+        tags: ['Admin'],
+        summary: 'Atualiza uma categoria',
+        security: [['bearerAuth' => []]],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['id', 'name'],
+                properties: [
+                    new OA\Property(property: 'id', type: 'integer'),
+                    new OA\Property(property: 'name', type: 'string')
+                ]
+            )
+        ),
+        responses: [new OA\Response(response: 200, description: 'Atualizado')]
+    )]
+    public function update()
+    {
+        $data = AppHelper::getJsonInput();
+        if (empty($data['id']) || empty($data['name'])) {
+            AppHelper::sendResponse(400, ['error' => 'ID e Nome obrigatórios']);
+            return;
+        }
+
+        if (\App\Models\Category::update($data['id'], $data['name'])) {
+            AppHelper::sendResponse(200, ['message' => 'Categoria atualizada']);
+        } else {
+            AppHelper::sendResponse(500, ['error' => 'Erro ao atualizar']);
+        }
+    }
+
+    #[OA\Delete(
+        path: '/categories',
+        tags: ['Admin'],
+        summary: 'Remove uma categoria',
+        security: [['bearerAuth' => []]],
+        requestBody: new OA\RequestBody(content: new OA\JsonContent(properties: [new OA\Property(property: 'id', type: 'integer')])),
+        responses: [new OA\Response(response: 200, description: 'Removido')]
+    )]
+    public function destroy()
+    {
+        $data = AppHelper::getJsonInput();
+        if (empty($data['id'])) {
+            AppHelper::sendResponse(400, ['error' => 'ID obrigatório']);
+            return;
+        }
+
+        // Podes adicionar verificação se existem artigos nesta categoria antes de apagar, 
+        // mas o banco está com SET NULL, então é seguro.
+        if (\App\Models\Category::delete($data['id'])) {
+            AppHelper::sendResponse(200, ['message' => 'Categoria removida']);
+        } else {
+            AppHelper::sendResponse(500, ['error' => 'Erro ao remover']);
+        }
+    }
 }

@@ -128,4 +128,60 @@ class Interview
         $stmt->execute([$id]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
+
+    /**
+     * Atualiza uma entrevista e sincroniza as categorias.
+     */
+    public static function update(int $id, array $data): bool
+    {
+        $pdo = Database::getConnection();
+
+        try {
+            $pdo->beginTransaction();
+
+            // 1. Atualizar dados básicos
+            $slug = strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $data['title'])));
+
+            $sql = "UPDATE interviews 
+                    SET title = ?, slug = ?, interviewee = ?, content = ? 
+                    WHERE id = ?";
+
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute([
+                $data['title'],
+                $slug,
+                $data['interviewee'],
+                $data['content'] ?? '',
+                $id
+            ]);
+
+            // 2. Atualizar Categorias (Sync: Apagar antigas -> Inserir novas)
+            if (isset($data['category_ids']) && is_array($data['category_ids'])) {
+                // Remove ligações antigas
+                $stmtDel = $pdo->prepare("DELETE FROM interview_categories WHERE interview_id = ?");
+                $stmtDel->execute([$id]);
+
+                // Insere as novas
+                $stmtIns = $pdo->prepare("INSERT INTO interview_categories (interview_id, category_id) VALUES (?, ?)");
+                foreach ($data['category_ids'] as $catId) {
+                    $stmtIns->execute([$id, $catId]);
+                }
+            }
+
+            $pdo->commit();
+            return true;
+        } catch (\Exception $e) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            throw $e;
+        }
+    }
+
+    public static function delete(int $id): bool
+    {
+        $pdo = Database::getConnection();
+        // O DELETE CASCADE configurado no banco deve tratar das tabelas pivot, 
+        // mas o comando direto é seguro.
+        $stmt = $pdo->prepare("DELETE FROM interviews WHERE id = ?");
+        return $stmt->execute([$id]);
+    }
 }

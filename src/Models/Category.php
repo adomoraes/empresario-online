@@ -24,5 +24,19 @@ class Category
         return (int) $pdo->lastInsertId();
     }
 
-    // Podes adicionar delete() e update() aqui depois
+    public static function update(int $id, string $name): bool
+    {
+        $pdo = Database::getConnection();
+        $slug = strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $name)));
+
+        $stmt = $pdo->prepare("UPDATE categories SET name = ?, slug = ? WHERE id = ?");
+        return $stmt->execute([$name, $slug, $id]);
+    }
+
+    public static function delete(int $id): bool
+    {
+        $pdo = Database::getConnection();
+        $stmt = $pdo->prepare("DELETE FROM categories WHERE id = ?");
+        return $stmt->execute([$id]);
+    }
 }

@@ -206,4 +206,63 @@ class InterviewController
             if ($user) $_REQUEST['user'] = $user;
         }
     }
+
+    #[OA\Put(
+        path: '/interviews',
+        tags: ['Admin'],
+        summary: 'Atualiza uma entrevista',
+        security: [['bearerAuth' => []]],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['id', 'title', 'interviewee'],
+                properties: [
+                    new OA\Property(property: 'id', type: 'integer'),
+                    new OA\Property(property: 'title', type: 'string'),
+                    new OA\Property(property: 'interviewee', type: 'string'),
+                    new OA\Property(property: 'content', type: 'string'),
+                    new OA\Property(property: 'category_ids', type: 'array', items: new OA\Items(type: 'integer'))
+                ]
+            )
+        ),
+        responses: [new OA\Response(response: 200, description: 'Atualizado')]
+    )]
+    public function update()
+    {
+        $data = AppHelper::getJsonInput();
+        if (empty($data['id']) || empty($data['title'])) {
+            AppHelper::sendResponse(400, ['error' => 'Dados incompletos']);
+            return;
+        }
+
+        try {
+            \App\Models\Interview::update($data['id'], $data);
+            AppHelper::sendResponse(200, ['message' => 'Entrevista atualizada']);
+        } catch (\Exception $e) {
+            AppHelper::sendResponse(500, ['error' => 'Erro ao atualizar: ' . $e->getMessage()]);
+        }
+    }
+
+    #[OA\Delete(
+        path: '/interviews',
+        tags: ['Admin'],
+        summary: 'Remove uma entrevista',
+        security: [['bearerAuth' => []]],
+        requestBody: new OA\RequestBody(content: new OA\JsonContent(properties: [new OA\Property(property: 'id', type: 'integer')])),
+        responses: [new OA\Response(response: 200, description: 'Removido')]
+    )]
+    public function destroy()
+    {
+        $data = AppHelper::getJsonInput();
+        if (empty($data['id'])) {
+            AppHelper::sendResponse(400, ['error' => 'ID obrigatório']);
+            return;
+        }
+
+        if (\App\Models\Interview::delete($data['id'])) {
+            AppHelper::sendResponse(200, ['message' => 'Entrevista removida']);
+        } else {
+            AppHelper::sendResponse(500, ['error' => 'Erro ao remover']);
+        }
+    }
 }
