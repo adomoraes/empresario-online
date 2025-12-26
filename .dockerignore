@@ -1,0 +1,13 @@
+# Ignorar dados do MySQL (Resolve o erro de permissão)
+docker/mysql-data
+
+# Ignorar git
+.git
+.gitignore
+
+# Ignorar dependências locais (serão instaladas de novo no build)
+vendor/
+
+# Ignorar configurações locais do Docker que não são precisas na imagem
+docker-compose.yml
+README.md
