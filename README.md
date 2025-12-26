@@ -1,79 +1,101 @@
-# Empresário Online
+# 🚀 Empresário Online API
 
-API em PHP Puro com Docker.
+API RESTful desenvolvida para o portal **Empresário Online**, utilizando uma arquitetura MVC personalizada em PHP 8.2 puro (sem frameworks pesados), focada em performance, organização e facilidade de manutenção.
 
-## Descrição
+O sistema implementa um modelo de acesso **Premium**, onde o conteúdo (Artigos e Entrevistas) é exclusivo para utilizadores autenticados, além de incluir uma área administrativa completa.
 
-Este projeto é uma API RESTful desenvolvida em PHP puro, utilizando Docker para criar um ambiente de desenvolvimento padronizado e isolado.
+---
 
-## Requisitos
+## 🛠️ Stack Tecnológica
 
-- Docker
-- Docker Compose
-- Composer
+- **Linguagem:** PHP 8.2
+- **Web Server:** Apache (com `mod_rewrite` ativo)
+- **Base de Dados:** MySQL 5.7
+- **Infraestrutura:** Docker & Docker Compose
+- **Documentação:** OpenAPI 3.0 (Swagger PHP)
+- **Testes:** PHPUnit 10
 
-## Como Iniciar o Projeto
+---
 
-1. **Clone o repositório:**
-   ```bash
-   git clone https://github.com/seu-usuario/empresario-online.git
-   cd empresario-online
-   ```
+## 🏗️ Arquitetura do Projeto
 
-2. **Instale as dependências com o Composer:**
-   ```bash
-   composer install
-   ```
+O projeto não utiliza frameworks de terceiros (como Laravel ou Symfony) para o núcleo, implementando a sua própria estrutura leve e eficiente:
 
-3. **Inicie os containers com o Docker Compose:**
-   ```bash
-   docker-compose up -d --build
-   ```
+### 1. Padrão MVC (Model-View-Controller)
 
-   A aplicação estará disponível em [http://localhost:8080](http://localhost:8080).
+- **Router Personalizado (`src/Config/Router.php`):** Suporta verbos HTTP (GET, POST, PUT, DELETE), agrupamento de rotas (`mount`) e aplicação de Middlewares (`use`).
+- **Controllers:** Gerem a lógica de requisição e resposta JSON. Exemplos: `ArticleController`, `InterviewController`.
+- **Models:** Utilizam PDO para comunicação direta e segura com o MySQL. Exemplos: `Article::all()`, `User::create()`.
 
-## Como Executar os Testes
+### 2. Segurança e Middlewares
 
-Para executar a suíte de testes automatizados, siga os passos abaixo:
+O sistema utiliza cadeias de responsabilidade via Middlewares:
 
-1. **Crie o banco de dados de teste:**
-   O ambiente de teste requer um banco de dados separado. Execute o comando abaixo para criá-lo dentro do container MySQL.
-   ```bash
-   docker exec -i mysql_nativo mysql -uroot -proot < sql/create_test_db.sql
-   ```
+- **`AuthMiddleware`:** Verifica o Token Bearer (JWT Simples) e injeta o utilizador na requisição.
+- **`AdminMiddleware`:** Garante que o utilizador autenticado tem a role `admin`.
+- **`LogMiddleware`:** Regista acessos e métricas de uso para auditoria.
 
-2. **Execute o PHPUnit:**
-   ```bash
-   vendor/bin/phpunit
-   ```
+### 3. Modelo de Acesso "Premium"
 
-## Banco de Dados
+- **Público:** Rotas de Login, Registo e Documentação Swagger.
+- **Premium (Autenticado):** Leitura de Artigos, Entrevistas e acesso ao Dashboard.
+- **Admin:** Criação, Edição e Remoção de conteúdo, além da gestão de utilizadores e logs.
 
-A aplicação utiliza um container MySQL. As credenciais de acesso padrão estão configuradas no arquivo `docker-compose.yml`:
+---
 
-- **Host (para a aplicação no Docker):** `db`
-- **Host (para acesso externo/testes):** `127.0.0.1`
-- **Porta:** `3306`
-- **Banco de dados principal:** `meu_banco`
-- **Usuário:** `user`
-- **Senha:** `password`
-- **Usuário Root:** `root`
-- **Senha Root:** `root`
+## 🐳 Como Rodar o Projeto
 
-O banco de dados de teste é o `meu_banco_teste`.
+O ambiente é totalmente "Dockerizado" e inclui scripts de automação para facilitar o início.
 
-## Documentação da API
+### Pré-requisitos
 
-A documentação dos endpoints da API está disponível em dois formatos:
+- Docker e Docker Compose instalados.
 
-### 1. Swagger UI (Recomendado)
+### Passo a Passo
 
-Após iniciar o projeto, você pode acessar uma interface interativa do Swagger para visualizar e testar todos os endpoints.
+1.  **Subir o Ambiente:**
+    Execute o comando na raiz do projeto para construir e iniciar os contentores:
 
-- **URL:** [http://localhost:8080/swagger.html](http://localhost:8080/swagger.html)
+    ```bash
+    docker-compose up --build
+    ```
 
-### 2. Coleção Postman
+2.  **Automação de Arranque:**
+    O script `entrypoint.sh` executa as seguintes ações automaticamente a cada arranque:
 
-Uma coleção do Postman também está disponível. Você pode importar o seguinte arquivo no seu Postman:
+    - Aguardar a disponibilidade do MySQL.
+    - **Saneamento:** Limpa e recria a estrutura da base de dados.
+    - **Seeding:** Executa `seed_runner.php` para popular o banco com dados de teste (10 users, 2 admins, 20 artigos, 30 entrevistas).
+    - Iniciar o servidor Apache.
 
-- `docs/eol_api.postman_collection.json`
+3.  **Aceder à Aplicação:**
+    - **API Base:** `http://localhost:8080`
+    - **Documentação Swagger:** `http://localhost:8080/` ou `http://localhost:8080/api-docs`
+
+---
+
+## 📚 Documentação da API (Swagger)
+
+A documentação interativa é gerada automaticamente via anotações (Attributes) nos Controllers.
+
+**Como testar rotas protegidas no Swagger:**
+
+1.  Aceda a `http://localhost:8080`.
+2.  Use a rota `POST /login` com as credenciais de teste geradas pelo seed:
+    - **Email:** `admin@teste.com`
+    - **Password:** `123`
+3.  Copie o `token` devolvido na resposta JSON.
+4.  Clique no botão **Authorize** (cadeado) no topo da página e cole o token.
+5.  Agora pode testar as rotas protegidas (ex: `GET /articles`, `POST /interviews`).
+
+---
+
+## 🧪 Testes Automatizados
+
+O projeto possui uma suíte de testes robusta cobrindo autenticação, CRUDs e regras de negócio.
+
+Para rodar os testes dentro do contentor:
+
+```bash
+docker-compose exec app vendor/bin/phpunit
+```
