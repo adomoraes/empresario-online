@@ -17,6 +17,16 @@ class Router
         $this->addRoute('POST', $uri, $action);
     }
 
+    public function put(string $uri, string $action)
+    {
+        $this->addRoute('PUT', $uri, $action);
+    }
+
+    public function delete(string $uri, string $action)
+    {
+        $this->addRoute('DELETE', $uri, $action);
+    }
+
     public function group(array $attributes, callable $callback)
     {
         $this->groupStack[] = $attributes;
