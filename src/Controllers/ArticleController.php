@@ -2,195 +2,139 @@
 
 namespace App\Controllers;
 
-use App\Config\Database;
-use App\Config\AppHelper; // <--- Importante
-use PDO;
-
+use App\Models\Article;
+use App\Config\AppHelper;
 use OpenApi\Attributes as OA;
 
 class ArticleController
 {
+    #[OA\Get(
+        path: '/articles',
+        tags: ['Conteúdo (Premium)'],
+        summary: 'Lista todos os artigos',
+        description: 'Retorna a lista de artigos. Requer login.',
+        security: [['bearerAuth' => []]],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Lista de artigos',
+                content: new OA\JsonContent(type: 'array', items: new OA\Items(properties: [
+                    new OA\Property(property: 'id', type: 'integer'),
+                    new OA\Property(property: 'title', type: 'string'),
+                    new OA\Property(property: 'excerpt', type: 'string')
+                ]))
+            ),
+            new OA\Response(response: 401, description: 'Não autorizado')
+        ]
+    )]
     public function index()
     {
-        $pdo = Database::getConnection();
-        $stmt = $pdo->query("SELECT id, title, content FROM articles ORDER BY created_at DESC");
-        AppHelper::sendResponse(200, ['data' => $stmt->fetchAll(PDO::FETCH_ASSOC)]);
+        $articles = Article::all();
+        AppHelper::sendResponse(200, ['data' => $articles]);
     }
 
     #[OA\Get(
         path: '/article',
-        tags: ['Artigos'],
-        summary: 'Busca um artigo por ID',
+        tags: ['Conteúdo (Premium)'],
+        summary: 'Lê um artigo completo',
+        security: [['bearerAuth' => []]],
         parameters: [
             new OA\Parameter(name: 'id', in: 'query', required: true, schema: new OA\Schema(type: 'integer'))
         ],
         responses: [
-            new OA\Response(response: 200, description: 'Artigo encontrado'),
-            new OA\Response(response: 400, description: 'ID do artigo é necessário'),
+            new OA\Response(response: 200, description: 'Detalhes do artigo'),
             new OA\Response(response: 404, description: 'Artigo não encontrado')
         ]
     )]
     public function show()
     {
-        // 1. Validação básica do ID
         $id = $_GET['id'] ?? null;
         if (!$id) {
-            AppHelper::sendResponse(400, ['error' => 'ID necessário']);
+            AppHelper::sendResponse(400, ['error' => 'ID obrigatório']);
             return;
         }
 
-        $pdo = Database::getConnection();
-        $stmt = $pdo->prepare("SELECT * FROM articles WHERE id = ?");
-        $stmt->execute([$id]);
-        $article = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        if (!$article) {
+        $article = Article::find($id);
+        if ($article) {
+            AppHelper::sendResponse(200, ['data' => $article]);
+        } else {
             AppHelper::sendResponse(404, ['error' => 'Artigo não encontrado']);
-            return;
-        }
-
-        // 2. Auth Opcional (Silent Auth)
-        // Se o utilizador não veio de um middleware, tentamos identificá-lo agora
-        if (!isset($_REQUEST['user'])) {
-            $this->tryIdentifyUser();
-        }
-
-        // 3. Gravar Histórico (Agora o UserHistory existe!)
-        if (isset($_REQUEST['user'])) {
-            \App\Models\UserHistory::record(
-                $_REQUEST['user']['id'],
-                $article['category_id'] ?? 0,
-                'article',
-                $id
-            );
-        }
-
-        AppHelper::sendResponse(200, ['data' => $article]);
-    }
-
-    // Método auxiliar privado para tentar ler o token sem bloquear
-    private function tryIdentifyUser()
-    {
-        $headers = [];
-        if (function_exists('getallheaders')) {
-            $headers = getallheaders();
-        }
-        $authHeader = $headers['Authorization'] ?? $_SERVER['HTTP_AUTHORIZATION'] ?? null;
-
-        if ($authHeader && preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
-            $token = $matches[1];
-            $pdo = Database::getConnection();
-            $stmt = $pdo->prepare("
-                SELECT u.id, u.name, u.role 
-                FROM personal_access_tokens t
-                JOIN users u ON t.user_id = u.id
-                WHERE t.token = ?
-            ");
-            $stmt->execute([$token]);
-            $user = $stmt->fetch(PDO::FETCH_ASSOC);
-
-            if ($user) {
-                $_REQUEST['user'] = $user;
-            }
         }
     }
+
+    // --- MÉTODOS DE ADMIN ---
 
     #[OA\Post(
         path: '/articles',
         tags: ['Admin'],
-        summary: 'Cria um novo artigo',
+        summary: 'Criar Artigo',
         security: [['bearerAuth' => []]],
-        requestBody: new OA\RequestBody(
-            required: true,
-            content: new OA\JsonContent(
-                required: ['title', 'content'],
-                properties: [
-                    new OA\Property(property: 'title', type: 'string', example: 'Título do Artigo'),
-                    new OA\Property(property: 'content', type: 'string', example: 'Conteúdo do artigo...'),
-                    new OA\Property(property: 'category_id', type: 'integer', example: 1)
-                ]
-            )
-        ),
-        responses: [
-            new OA\Response(response: 201, description: 'Artigo criado'),
-            new OA\Response(response: 400, description: 'Dados incompletos'),
-            new OA\Response(response: 401, description: 'Não autorizado')
-        ]
+        requestBody: new OA\RequestBody(content: new OA\JsonContent(
+            required: ['title', 'content', 'category_id'],
+            properties: [
+                new OA\Property(property: 'title', type: 'string'),
+                new OA\Property(property: 'content', type: 'string'),
+                new OA\Property(property: 'category_id', type: 'integer')
+            ]
+        )),
+        responses: [new OA\Response(response: 201, description: 'Criado')]
     )]
     public function store()
     {
-        $data = AppHelper::getJsonInput(); // <--- Para funcionar no PHPUnit
-
-        if (empty($data['title']) || empty($data['content'])) {
+        $data = AppHelper::getJsonInput();
+        if (empty($data['title']) || empty($data['content']) || empty($data['category_id'])) {
             AppHelper::sendResponse(400, ['error' => 'Dados incompletos']);
             return;
         }
 
-        $pdo = Database::getConnection();
-        $stmt = $pdo->prepare("INSERT INTO articles (title, content, category_id, user_id) VALUES (?, ?, ?, ?)");
+        $user = $_REQUEST['user'] ?? ['id' => 1];
 
-        // Assume que o middleware de Admin já validou o user e ele está em $_REQUEST['user']
-        // Se for um teste sem middleware, podemos precisar de um fallback, mas o teste cuidará disso.
-        $userId = $_REQUEST['user']['id'] ?? 1;
-
-        $stmt->execute([
-            $data['title'],
-            $data['content'],
-            $data['category_id'] ?? null,
-            $userId
-        ]);
-
-        AppHelper::sendResponse(201, ['message' => 'Artigo criado', 'id' => $pdo->lastInsertId()]);
+        try {
+            $id = Article::create($data['title'], $data['content'], $data['category_id'], $user['id']);
+            AppHelper::sendResponse(201, ['message' => 'Artigo criado', 'id' => $id]);
+        } catch (\Exception $e) {
+            AppHelper::sendResponse(500, ['error' => $e->getMessage()]);
+        }
     }
 
     #[OA\Put(
         path: '/articles',
         tags: ['Admin'],
-        summary: 'Atualiza um artigo',
+        summary: 'Atualizar Artigo',
         security: [['bearerAuth' => []]],
-        requestBody: new OA\RequestBody(
-            required: true,
-            content: new OA\JsonContent(
-                required: ['id', 'title', 'content'],
-                properties: [
-                    new OA\Property(property: 'id', type: 'integer'),
-                    new OA\Property(property: 'title', type: 'string'),
-                    new OA\Property(property: 'content', type: 'string'),
-                    new OA\Property(property: 'category_id', type: 'integer')
-                ]
-            )
-        ),
-        responses: [
-            new OA\Response(response: 200, description: 'Atualizado'),
-            new OA\Response(response: 400, description: 'Erro')
-        ]
+        requestBody: new OA\RequestBody(content: new OA\JsonContent(
+            required: ['id', 'title'],
+            properties: [
+                new OA\Property(property: 'id', type: 'integer'),
+                new OA\Property(property: 'title', type: 'string'),
+                new OA\Property(property: 'content', type: 'string'),
+                new OA\Property(property: 'category_id', type: 'integer')
+            ]
+        )),
+        responses: [new OA\Response(response: 200, description: 'Atualizado')]
     )]
     public function update()
     {
         $data = AppHelper::getJsonInput();
-
-        if (empty($data['id']) || empty($data['title']) || empty($data['content'])) {
-            AppHelper::sendResponse(400, ['error' => 'ID, Título e Conteúdo são obrigatórios']);
+        if (empty($data['id'])) {
+            AppHelper::sendResponse(400, ['error' => 'ID obrigatório']);
             return;
         }
 
-        if (\App\Models\Article::update($data['id'], $data['title'], $data['content'], $data['category_id'] ?? null)) {
-            AppHelper::sendResponse(200, ['message' => 'Artigo atualizado com sucesso']);
+        if (Article::update($data['id'], $data)) {
+            AppHelper::sendResponse(200, ['message' => 'Artigo atualizado']);
         } else {
-            AppHelper::sendResponse(500, ['error' => 'Erro ao atualizar artigo']);
+            AppHelper::sendResponse(500, ['error' => 'Erro ao atualizar']);
         }
     }
 
     #[OA\Delete(
         path: '/articles',
         tags: ['Admin'],
-        summary: 'Remove um artigo',
+        summary: 'Apagar Artigo',
         security: [['bearerAuth' => []]],
-        requestBody: new OA\RequestBody(
-            required: true,
-            content: new OA\JsonContent(properties: [new OA\Property(property: 'id', type: 'integer')])
-        ),
-        responses: [new OA\Response(response: 200, description: 'Removido')]
+        requestBody: new OA\RequestBody(content: new OA\JsonContent(properties: [new OA\Property(property: 'id', type: 'integer')])),
+        responses: [new OA\Response(response: 200, description: 'Apagado')]
     )]
     public function destroy()
     {
@@ -200,7 +144,7 @@ class ArticleController
             return;
         }
 
-        if (\App\Models\Article::delete($data['id'])) {
+        if (Article::delete($data['id'])) {
             AppHelper::sendResponse(200, ['message' => 'Artigo removido']);
         } else {
             AppHelper::sendResponse(500, ['error' => 'Erro ao remover']);

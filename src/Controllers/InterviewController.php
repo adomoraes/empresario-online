@@ -4,7 +4,7 @@ namespace App\Controllers;
 
 use App\Config\Database;
 use App\Config\AppHelper;
-use App\Config\HttpResponseException; // <--- Importante!
+use App\Config\HttpResponseException;
 use PDO;
 use OpenApi\Attributes as OA;
 
@@ -12,10 +12,13 @@ class InterviewController
 {
     #[OA\Get(
         path: '/interviews',
-        tags: ['Entrevistas'],
+        tags: ['Conteúdo (Premium)'],
         summary: 'Lista todas as entrevistas',
+        description: 'Acesso restrito a assinantes.',
+        security: [['bearerAuth' => []]],
         responses: [
-            new OA\Response(response: 200, description: 'Lista de entrevistas')
+            new OA\Response(response: 200, description: 'Lista de entrevistas'),
+            new OA\Response(response: 401, description: 'Não autorizado')
         ]
     )]
     public function index()
@@ -36,14 +39,15 @@ class InterviewController
 
     #[OA\Get(
         path: '/interview',
-        tags: ['Entrevistas'],
+        tags: ['Conteúdo (Premium)'],
         summary: 'Busca uma entrevista por ID',
+        security: [['bearerAuth' => []]],
         parameters: [
             new OA\Parameter(name: 'id', in: 'query', required: true, schema: new OA\Schema(type: 'integer'))
         ],
         responses: [
             new OA\Response(response: 200, description: 'Entrevista encontrada'),
-            new OA\Response(response: 404, description: 'Entrevista não encontrada')
+            new OA\Response(response: 401, description: 'Não autorizado')
         ]
     )]
     public function show()
@@ -73,10 +77,6 @@ class InterviewController
         ");
         $stmtCat->execute([$id]);
         $interview['categories'] = $stmtCat->fetchAll(PDO::FETCH_ASSOC);
-
-        if (!isset($_REQUEST['user'])) {
-            $this->tryIdentifyUser();
-        }
 
         if (isset($_REQUEST['user'])) {
             foreach ($interview['categories'] as $cat) {
@@ -124,7 +124,7 @@ class InterviewController
             $id = \App\Models\Interview::create($data);
             AppHelper::sendResponse(201, ['message' => 'Entrevista criada', 'id' => $id]);
         } catch (HttpResponseException $e) {
-            throw $e; // Sucesso! Deixa passar.
+            throw $e;
         } catch (\Throwable $e) {
             AppHelper::sendResponse(500, ['error' => $e->getMessage()]);
         }
@@ -155,7 +155,7 @@ class InterviewController
         $data = AppHelper::getJsonInput();
 
         if (empty($data['id']) || empty($data['title'])) {
-            AppHelper::sendResponse(400, ['error' => 'Dados incompletos (id, title são obrigatórios)']);
+            AppHelper::sendResponse(400, ['error' => 'Dados incompletos']);
             return;
         }
 
@@ -163,7 +163,6 @@ class InterviewController
             \App\Models\Interview::update($data['id'], $data);
             AppHelper::sendResponse(200, ['message' => 'Entrevista atualizada']);
         } catch (HttpResponseException $e) {
-            // FIX CRÍTICO: Se for sucesso, relança a exceção para não cair no catch genérico!
             throw $e;
         } catch (\Exception $e) {
             AppHelper::sendResponse(500, ['error' => 'Erro ao atualizar: ' . $e->getMessage()]);
@@ -202,6 +201,7 @@ class InterviewController
 
     private function tryIdentifyUser()
     {
+        // ... Método existente mantido ...
         $headers = [];
         if (function_exists('getallheaders')) {
             $headers = getallheaders();
