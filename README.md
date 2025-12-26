@@ -64,6 +64,16 @@ O banco de dados de teste é o `meu_banco_teste`.
 
 ## Documentação da API
 
-A documentação dos endpoints da API está disponível como uma coleção do Postman. Você pode importar o seguinte arquivo no seu Postman:
+A documentação dos endpoints da API está disponível em dois formatos:
 
-`docs/eol_api.postman_collection.json`
+### 1. Swagger UI (Recomendado)
+
+Após iniciar o projeto, você pode acessar uma interface interativa do Swagger para visualizar e testar todos os endpoints.
+
+- **URL:** [http://localhost:8080/swagger.html](http://localhost:8080/swagger.html)
+
+### 2. Coleção Postman
+
+Uma coleção do Postman também está disponível. Você pode importar o seguinte arquivo no seu Postman:
+
+- `docs/eol_api.postman_collection.json`
