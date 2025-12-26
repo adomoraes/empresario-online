@@ -70,7 +70,7 @@ O ambiente é totalmente "Dockerizado" e inclui scripts de automação para faci
 
 3.  **Aceder à Aplicação:**
     - **API Base:** `http://localhost:8080`
-    - **Documentação Swagger:** `http://localhost:8080/` ou `http://localhost:8080/api-docs`
+    - **Documentação Swagger:** `http://localhost:8081/` ou `http://localhost:8080/api-docs`
 
 ---
 
