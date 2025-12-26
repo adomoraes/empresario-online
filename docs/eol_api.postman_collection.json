@@ -1,39 +1,16 @@
 {
 	"info": {
-		"_postman_id": "b5c8e0a1-d2f3-4e5a-9a1b-2c3d4e5f6g7h",
-		"name": "API Nativa PHP (MVC)",
-		"description": "Coleção completa para teste da API de Entrevistas e Artigos com Auth, RBAC e Dashboard.",
+		"_postman_id": "c7b8c2f1-4d3e-4f5a-9b1c-8e2d1a3f4b5d",
+		"name": "Empresário Online (Premium)",
+		"description": "Collection completa para a API do Empresário Online.\n\n**Arquitetura:** Modelo Premium (Conteúdo fechado).\n\n**Autenticação:**\nTodas as rotas (exceto Login/Register/Docs) exigem um Header `Authorization: Bearer <token>`.\n\n**Instruções:**\n1. Use a rota **POST Login** primeiro.\n2. O script automático salvará o token na variável `{{token}}`.\n3. Navegue pelas pastas para testar.",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
 		{
-			"name": "1. Auth",
+			"name": "🔓 Autenticação (Público)",
 			"item": [
 				{
-					"name": "Register",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"name\": \"Novo User\",\n    \"email\": \"user@teste.com\",\n    \"password\": \"123\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{base_url}}/register",
-							"host": ["{{base_url}}"],
-							"path": ["register"]
-						},
-						"description": "Cria um novo utilizador (role padrão: 'user')."
-					},
-					"response": []
-				},
-				{
-					"name": "Login (Auto-Set Token)",
+					"name": "Login (Gera Token)",
 					"event": [
 						{
 							"listen": "test",
@@ -42,7 +19,7 @@
 									"var jsonData = pm.response.json();",
 									"if (jsonData.token) {",
 									"    pm.environment.set(\"token\", jsonData.token);",
-									"    console.log(\"Token guardado automaticamente: \" + jsonData.token);",
+									"    console.log(\"Token salvo automaticamente: \" + jsonData.token);",
 									"}"
 								],
 								"type": "text/javascript"
@@ -54,7 +31,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"email\": \"user@teste.com\",\n    \"password\": \"123\"\n}",
+							"raw": "{\n    \"email\": \"admin@teste.com\",\n    \"password\": \"123\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -66,17 +43,41 @@
 							"host": ["{{base_url}}"],
 							"path": ["login"]
 						},
-						"description": "Faz login e guarda o Token automaticamente nas variáveis de ambiente do Postman."
+						"description": "Autentica o usuário e guarda o token automaticamente na variável `{{token}}`."
+					},
+					"response": []
+				},
+				{
+					"name": "Registar Novo User",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Novo Membro\",\n    \"email\": \"membro@teste.com\",\n    \"password\": \"123\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/register",
+							"host": ["{{base_url}}"],
+							"path": ["register"]
+						},
+						"description": "Cria uma nova conta (Role padrão: 'user')."
 					},
 					"response": []
 				}
-			]
+			],
+			"description": "Únicas rotas acessíveis sem token."
 		},
 		{
-			"name": "2. User Experience",
+			"name": "💎 Área Premium (Leitura)",
 			"item": [
 				{
-					"name": "Get Me (Profile)",
+					"name": "Meus Dados (Profile)",
 					"request": {
 						"method": "GET",
 						"header": [
@@ -91,41 +92,12 @@
 							"host": ["{{base_url}}"],
 							"path": ["me"]
 						},
-						"description": "Retorna os dados do utilizador logado."
+						"description": "Retorna os dados do usuário logado."
 					},
 					"response": []
 				},
 				{
-					"name": "Update Profile",
-					"request": {
-						"method": "PUT",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}",
-								"type": "text"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"name\": \"Nome Atualizado\",\n    \"email\": \"novo@email.com\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{base_url}}/profile",
-							"host": ["{{base_url}}"],
-							"path": ["profile"]
-						},
-						"description": "Atualiza nome e email do próprio utilizador."
-					},
-					"response": []
-				},
-				{
-					"name": "Dashboard (Feed)",
+					"name": "Dashboard User (Feed)",
 					"request": {
 						"method": "GET",
 						"header": [
@@ -136,125 +108,62 @@
 							}
 						],
 						"url": {
-							"raw": "{{base_url}}/dashboard?page=1&limit=10",
+							"raw": "{{base_url}}/dashboard",
 							"host": ["{{base_url}}"],
-							"path": ["dashboard"],
+							"path": ["dashboard"]
+						},
+						"description": "Feed de conteúdo personalizado para o usuário."
+					},
+					"response": []
+				},
+				{
+					"name": "Listar Artigos",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/articles",
+							"host": ["{{base_url}}"],
+							"path": ["articles"]
+						},
+						"description": "Lista todos os artigos disponíveis."
+					},
+					"response": []
+				},
+				{
+					"name": "Ler Artigo (Detalhe)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/article?id=1",
+							"host": ["{{base_url}}"],
+							"path": ["article"],
 							"query": [
 								{
-									"key": "page",
-									"value": "1",
-									"description": "Página atual"
-								},
-								{
-									"key": "limit",
-									"value": "10",
-									"description": "Itens por página"
+									"key": "id",
+									"value": "1"
 								}
 							]
 						},
-						"description": "Feed misto (Artigos + Entrevistas). Se o user tiver interesses, filtra por eles. Se não, mostra geral."
+						"description": "Lê um artigo específico. Regista visualização no histórico."
 					},
 					"response": []
 				},
 				{
-					"name": "List Interests",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}",
-								"type": "text"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/interests",
-							"host": ["{{base_url}}"],
-							"path": ["interests"]
-						},
-						"description": "Lista categorias que o utilizador segue."
-					},
-					"response": []
-				},
-				{
-					"name": "Add Interest",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}",
-								"type": "text"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"category_id\": 1\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{base_url}}/interests",
-							"host": ["{{base_url}}"],
-							"path": ["interests"]
-						},
-						"description": "Começa a seguir uma categoria."
-					},
-					"response": []
-				},
-				{
-					"name": "Remove Interest",
-					"request": {
-						"method": "DELETE",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}",
-								"type": "text"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"category_id\": 1\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{base_url}}/interests",
-							"host": ["{{base_url}}"],
-							"path": ["interests"]
-						},
-						"description": "Deixa de seguir uma categoria."
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "3. Content (General)",
-			"item": [
-				{
-					"name": "List Categories",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/categories",
-							"host": ["{{base_url}}"],
-							"path": ["categories"]
-						},
-						"description": "Lista todas as categorias disponíveis (Público)."
-					},
-					"response": []
-				},
-				{
-					"name": "List Interviews",
+					"name": "Listar Entrevistas",
 					"request": {
 						"method": "GET",
 						"header": [
@@ -269,17 +178,58 @@
 							"host": ["{{base_url}}"],
 							"path": ["interviews"]
 						},
-						"description": "Lista simples de entrevistas."
+						"description": "Lista todas as entrevistas."
 					},
 					"response": []
-				}
-			]
-		},
-		{
-			"name": "4. Admin Area",
-			"item": [
+				},
 				{
-					"name": "Create Category",
+					"name": "Ler Entrevista (Detalhe)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/interview?id=1",
+							"host": ["{{base_url}}"],
+							"path": ["interview"],
+							"query": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						},
+						"description": "Lê uma entrevista específica."
+					},
+					"response": []
+				},
+				{
+					"name": "Listar Categorias",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/categories",
+							"host": ["{{base_url}}"],
+							"path": ["categories"]
+						},
+						"description": "Lista todas as categorias para filtro."
+					},
+					"response": []
+				},
+				{
+					"name": "Salvar Interesses",
 					"request": {
 						"method": "POST",
 						"header": [
@@ -291,7 +241,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"name\": \"Tecnologia\"\n}",
+							"raw": "{\n    \"category_ids\": [1, 3]\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -299,16 +249,22 @@
 							}
 						},
 						"url": {
-							"raw": "{{base_url}}/categories",
+							"raw": "{{base_url}}/interests",
 							"host": ["{{base_url}}"],
-							"path": ["categories"]
+							"path": ["interests"]
 						},
-						"description": "Cria nova categoria (Requer role 'admin')."
+						"description": "Define as categorias de interesse do usuário."
 					},
 					"response": []
-				},
+				}
+			],
+			"description": "Rotas acessíveis a qualquer usuário logado."
+		},
+		{
+			"name": "🛡️ Admin - Gestão de Conteúdo",
+			"item": [
 				{
-					"name": "Create Article",
+					"name": "Artigo - Criar",
 					"request": {
 						"method": "POST",
 						"header": [
@@ -320,7 +276,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"title\": \"O Futuro do PHP\",\n    \"content\": \"O PHP continua a evoluir...\",\n    \"category_id\": 1\n}",
+							"raw": "{\n    \"title\": \"Artigo Exclusivo\",\n    \"content\": \"Conteúdo restrito para membros...\",\n    \"category_id\": 1\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -332,12 +288,70 @@
 							"host": ["{{base_url}}"],
 							"path": ["articles"]
 						},
-						"description": "Cria novo artigo (Requer role 'admin')."
+						"description": "Cria um novo artigo."
 					},
 					"response": []
 				},
 				{
-					"name": "Create Interview (Manual)",
+					"name": "Artigo - Atualizar",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"id\": 1,\n    \"title\": \"Artigo Editado\",\n    \"content\": \"Novo texto...\",\n    \"category_id\": 2\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/articles",
+							"host": ["{{base_url}}"],
+							"path": ["articles"]
+						},
+						"description": "Atualiza um artigo."
+					},
+					"response": []
+				},
+				{
+					"name": "Artigo - Apagar",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"id\": 1\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/articles",
+							"host": ["{{base_url}}"],
+							"path": ["articles"]
+						},
+						"description": "Remove um artigo."
+					},
+					"response": []
+				},
+				{
+					"name": "Entrevista - Criar",
 					"request": {
 						"method": "POST",
 						"header": [
@@ -349,7 +363,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"title\": \"Entrevista Manual\",\n    \"interviewee\": \"Dev Senior\"\n}",
+							"raw": "{\n    \"title\": \"Nova Entrevista\",\n    \"interviewee\": \"CEO da Tech\",\n    \"content\": \"Transcrição...\",\n    \"category_ids\": [1, 2]\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -361,12 +375,70 @@
 							"host": ["{{base_url}}"],
 							"path": ["interviews"]
 						},
-						"description": "Criação simples de entrevista (Requer Auth)."
+						"description": "Cria entrevista com múltiplas categorias."
 					},
 					"response": []
 				},
 				{
-					"name": "Import Legacy Interview (JSON)",
+					"name": "Entrevista - Atualizar",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"id\": 1,\n    \"title\": \"Entrevista Atualizada\",\n    \"interviewee\": \"CEO Update\",\n    \"category_ids\": [3]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/interviews",
+							"host": ["{{base_url}}"],
+							"path": ["interviews"]
+						},
+						"description": "Atualiza entrevista."
+					},
+					"response": []
+				},
+				{
+					"name": "Entrevista - Apagar",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"id\": 1\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/interviews",
+							"host": ["{{base_url}}"],
+							"path": ["interviews"]
+						},
+						"description": "Remove entrevista."
+					},
+					"response": []
+				},
+				{
+					"name": "Categoria - Criar",
 					"request": {
 						"method": "POST",
 						"header": [
@@ -378,7 +450,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n\t\"title\": \"Importação via Postman\",\n\t\"interviewee\": \"Legacy System\",\n\t\"published_at\": \"2023-10-10\",\n\t\"categories\": [\n\t\t{ \"name\": \"Legacy\", \"slug\": \"legacy\" }\n\t],\n\t\"excerpt\": \"Teste de importação complexa.\"\n}",
+							"raw": "{\n    \"name\": \"Marketing Digital\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -386,16 +458,71 @@
 							}
 						},
 						"url": {
-							"raw": "{{base_url}}/admin/import/interview",
+							"raw": "{{base_url}}/categories",
 							"host": ["{{base_url}}"],
-							"path": ["admin", "import", "interview"]
+							"path": ["categories"]
 						},
-						"description": "Importa JSON complexo de entrevistas (Requer role 'admin')."
+						"description": "Cria categoria (slug automático)."
 					},
 					"response": []
 				},
 				{
-					"name": "List Users",
+					"name": "Categoria - Apagar",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"id\": 5\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/categories",
+							"host": ["{{base_url}}"],
+							"path": ["categories"]
+						},
+						"description": "Apaga categoria."
+					},
+					"response": []
+				}
+			],
+			"description": "Requer Role 'admin'. Se falhar com 403, o user atual não é admin."
+		},
+		{
+			"name": "🛡️ Admin - Sistema",
+			"item": [
+				{
+					"name": "Dashboard Admin (Stats)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/admin/dashboard",
+							"host": ["{{base_url}}"],
+							"path": ["admin", "dashboard"]
+						},
+						"description": "Métricas globais do sistema."
+					},
+					"response": []
+				},
+				{
+					"name": "Listar Usuários",
 					"request": {
 						"method": "GET",
 						"header": [
@@ -410,12 +537,12 @@
 							"host": ["{{base_url}}"],
 							"path": ["admin", "users"]
 						},
-						"description": "Lista todos os utilizadores (Requer role 'admin')."
+						"description": "Lista todos os users registados."
 					},
 					"response": []
 				},
 				{
-					"name": "Promote User (Change Role)",
+					"name": "Promover Usuário",
 					"request": {
 						"method": "PUT",
 						"header": [
@@ -439,12 +566,12 @@
 							"host": ["{{base_url}}"],
 							"path": ["admin", "users"]
 						},
-						"description": "Promove um utilizador a Admin (Requer role 'admin')."
+						"description": "Promove um user normal a admin."
 					},
 					"response": []
 				},
 				{
-					"name": "Ban User (Delete)",
+					"name": "Banir usuário",
 					"request": {
 						"method": "DELETE",
 						"header": [
@@ -456,7 +583,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"id\": 3\n}",
+							"raw": "{\n    \"id\": 5\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -468,12 +595,12 @@
 							"host": ["{{base_url}}"],
 							"path": ["admin", "users"]
 						},
-						"description": "Remove um utilizador do sistema (Requer role 'admin')."
+						"description": "Remove um usuário do sistema."
 					},
 					"response": []
 				},
 				{
-					"name": "View Logs",
+					"name": "Ver Logs de Acesso",
 					"request": {
 						"method": "GET",
 						"header": [
@@ -488,12 +615,12 @@
 							"host": ["{{base_url}}"],
 							"path": ["admin", "logs"]
 						},
-						"description": "Visualiza histórico de acessos (Requer role 'admin')."
+						"description": "Histórico de requisições à API."
 					},
 					"response": []
 				},
 				{
-					"name": "Clear Logs",
+					"name": "Limpar Logs",
 					"request": {
 						"method": "DELETE",
 						"header": [
@@ -508,21 +635,24 @@
 							"host": ["{{base_url}}"],
 							"path": ["admin", "logs"]
 						},
-						"description": "Limpa todos os logs do sistema (Requer role 'admin')."
+						"description": "Apaga o histórico de logs."
 					},
 					"response": []
 				}
-			]
+			],
+			"description": "Rotas de manutenção do sistema."
 		}
 	],
 	"variable": [
 		{
 			"key": "base_url",
-			"value": "http://localhost:8080"
+			"value": "http://localhost:8080",
+			"type": "string"
 		},
 		{
 			"key": "token",
-			"value": ""
+			"value": "",
+			"type": "string"
 		}
 	]
 }
