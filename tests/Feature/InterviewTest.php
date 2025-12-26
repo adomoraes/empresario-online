@@ -63,13 +63,21 @@ class InterviewTest extends TestCase
         $this->pdo->exec("INSERT INTO interviews (id, title, slug, interviewee) VALUES (10, 'Old Interview', 'old', 'Old Guy')");
         $token = $this->authenticateUser('admin');
 
-        // 2. Ação: Mudar título e Entrevistado
+        // 2. Ação
         $response = $this->call('PUT', '/interviews', [
             'id' => 10,
             'title' => 'New Title',
             'interviewee' => 'New Guy',
-            'category_ids' => [] // Array vazio limpa categorias
+            'category_ids' => []
         ], ['Authorization' => "Bearer $token"]);
+
+        // --- BLOCO DE DEBUG ---
+        if ($response['status'] !== 200) {
+            fwrite(STDERR, "\n\n======== ERRO DO SERVIDOR ========\n");
+            fwrite(STDERR, print_r($response['body'], true));
+            fwrite(STDERR, "\n==================================\n\n");
+        }
+        // -----------------------
 
         $this->assertEquals(200, $response['status']);
 
