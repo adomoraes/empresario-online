@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Models\User;
 use App\Models\PersonalAccessToken;
+use OpenApi\Attributes as OA;
 use App\Config\Database;
 use App\Config\AppHelper;
 use PDO;
@@ -19,6 +20,36 @@ class UserController
         AppHelper::sendResponse(200, ['data' => $users]);
     }
 
+    // ...
+
+    #[OA\Post(
+        path: '/login',
+        tags: ['Autenticação'],
+        summary: 'Autenticação de utilizador',
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['email', 'password'],
+                properties: [
+                    new OA\Property(property: 'email', type: 'string', example: 'user@teste.com'),
+                    new OA\Property(property: 'password', type: 'string', example: '123')
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Sucesso',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'token', type: 'string'),
+                        new OA\Property(property: 'user', type: 'object')
+                    ]
+                )
+            ),
+            new OA\Response(response: 401, description: 'Credenciais inválidas')
+        ]
+    )]
     /**
      * Login do utilizador.
      * Recebe email/password -> Retorna Token.

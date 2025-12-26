@@ -5,6 +5,7 @@ use App\Config\Router;
 $router = new Router();
 
 // --- ROTAS PÚBLICAS ---
+$router->get('/api-docs', 'App\Controllers\SwaggerController@index');
 $router->post('/login', 'App\Controllers\UserController@login');
 $router->post('/register', 'App\Controllers\UserController@register');
 
