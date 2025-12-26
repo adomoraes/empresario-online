@@ -9,7 +9,7 @@ class UserInterest
 {
 
     /**
-     * Adiciona uma categoria aos interesses do utilizador.
+     * Adiciona uma categoria aos interesses do usuário.
      * Usa INSERT IGNORE para evitar erros se já existir.
      */
     public static function add(int $userId, int $categoryId): bool
@@ -30,7 +30,7 @@ class UserInterest
     }
 
     /**
-     * Lista todas as categorias que o utilizador segue.
+     * Lista todas as categorias que o usuário segue.
      */
     public static function listByUserId(int $userId): array
     {

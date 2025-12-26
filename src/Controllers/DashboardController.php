@@ -12,7 +12,7 @@ class DashboardController
 {
     #[OA\Get(
         path: '/dashboard',
-        tags: ['Utilizador'],
+        tags: ['Usuário'],
         summary: 'Retorna o feed do dashboard para o usuário autenticado',
         description: 'Se o usuário tiver um histórico de visualização, retorna conteúdo recomendado. Senão, retorna os artigos mais recentes.',
         security: [['bearerAuth' => []]],

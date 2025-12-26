@@ -7,7 +7,7 @@ use PDO;
 
 class User
 {
-    // Propriedades do Utilizador (igual às colunas do banco)
+    // Propriedades do Usuário (igual às colunas do banco)
     public int $id;
     public string $name;
     public string $email;
@@ -16,7 +16,7 @@ class User
     public ?string $created_at;
 
     /**
-     * Cria um novo utilizador no banco de dados.
+     * Cria um novo usuário no banco de dados.
      * Substitui o: User::create([...])
      */
     public static function create(string $name, string $email, string $password, string $role = 'user'): int
@@ -34,12 +34,12 @@ class User
             ':role'     => $role
         ]);
 
-        // Retorna o ID do utilizador criado
+        // Retorna o ID do usuário criado
         return (int) $pdo->lastInsertId();
     }
 
     /**
-     * Procura um utilizador pelo Email.
+     * Procura um usuário pelo Email.
      * Útil para o Login.
      * Substitui o: User::where('email', $email)->first()
      */
@@ -83,7 +83,7 @@ class User
     }
 
     /**
-     * Atualiza dados de QUALQUER utilizador (Admin mode).
+     * Atualiza dados de QUALQUER usuário (Admin mode).
      * Permite mudar inclusive a ROLE.
      */
     public static function update(int $id, array $data): bool
@@ -116,7 +116,7 @@ class User
     }
 
     /**
-     * Remove um utilizador pelo ID.
+     * Remove um usuário pelo ID.
      */
     public static function delete(int $id): bool
     {

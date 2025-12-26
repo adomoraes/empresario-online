@@ -39,7 +39,7 @@ $router->mount('/', function () use ($router) {
     // Aplica validação de Token para tudo dentro deste bloco
     $router->use(new AuthMiddleware());
 
-    // Área do Utilizador
+    // Área do Usuário
     $router->get('/me', 'App\Controllers\UserController@me');
     $router->put('/profile', 'App\Controllers\UserController@updateProfile');
     $router->get('/dashboard', 'App\Controllers\DashboardController@index');

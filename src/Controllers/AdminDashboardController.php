@@ -44,7 +44,7 @@ class AdminDashboardController
 
         $stats = [];
 
-        // Total de Utilizadores
+        // Total de Usuários
         $stats['total_users'] = $pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
 
         // Total de Artigos

@@ -14,7 +14,7 @@ class DashboardTest extends TestCase
 
         $this->pdo->exec("INSERT INTO articles (title, content, category_id, user_id) VALUES ('Artigo Novo', '...', 1, 99)");
 
-        // 2. Login como utilizador NOVO (sem histórico)
+        // 2. Login como usuário NOVO (sem histórico)
         $token = $this->authenticateUser('user');
 
         $response = $this->call('GET', '/dashboard', [], ['Authorization' => "Bearer $token"]);

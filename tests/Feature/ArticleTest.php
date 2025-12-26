@@ -58,7 +58,7 @@ class ArticleTest extends TestCase
         $token = $this->authenticateUser('user');
 
         // --- CORREÇÃO AQUI ---
-        // Recuperar o ID real do utilizador associado ao token gerado
+        // Recuperar o ID real do usuário associado ao token gerado
         $stmtUser = $this->pdo->prepare("SELECT user_id FROM personal_access_tokens WHERE token = ?");
         $stmtUser->execute([$token]);
         $userId = $stmtUser->fetchColumn();

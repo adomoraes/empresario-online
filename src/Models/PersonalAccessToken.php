@@ -8,7 +8,7 @@ use PDO;
 class PersonalAccessToken
 {
     /**
-     * Cria um token para o utilizador.
+     * Cria um token para o usuário.
      * Gera uma string aleatória, guarda no banco e devolve-a.
      */
     public static function create(int $userId, string $name = 'default'): string
@@ -29,7 +29,7 @@ class PersonalAccessToken
             ':name'    => $name
         ]);
 
-        // 3. Devolver o token "limpo" para o utilizador guardar
+        // 3. Devolver o token "limpo" para o usuário guardar
         return $token;
     }
 
@@ -41,7 +41,7 @@ class PersonalAccessToken
     {
         $pdo = Database::getConnection();
 
-        // Fazemos um JOIN para já buscar os dados do utilizador dono do token
+        // Fazemos um JOIN para já buscar os dados do usuário dono do token
         $sql = "SELECT u.id, u.name, u.email, u.role 
                 FROM personal_access_tokens t
                 JOIN users u ON u.id = t.user_id

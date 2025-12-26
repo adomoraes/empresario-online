@@ -12,17 +12,17 @@ use PDO;
 class UserController
 {
     /**
-     * Lista todos os utilizadores (Apenas Admin)
+     * Lista todos os usuários (Apenas Admin)
      */
     #[OA\Get(
         path: '/admin/users',
         tags: ['Admin'],
-        summary: 'Listar todos os utilizadores',
+        summary: 'Listar todos os usuários',
         security: [['bearerAuth' => []]],
         responses: [
             new OA\Response(
                 response: 200,
-                description: 'Lista de utilizadores recuperada',
+                description: 'Lista de usuários recuperada',
                 content: new OA\JsonContent(
                     properties: [
                         new OA\Property(property: 'data', type: 'array', items: new OA\Items(
@@ -46,12 +46,12 @@ class UserController
     }
 
     /**
-     * Login do utilizador.
+     * Login do usuário.
      */
     #[OA\Post(
         path: '/login',
         tags: ['Autenticação'],
-        summary: 'Autenticação de utilizador',
+        summary: 'Autenticação de usuário',
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
@@ -117,25 +117,25 @@ class UserController
     }
 
     /**
-     * Regista um novo utilizador.
+     * Regista um novo usuário.
      */
     #[OA\Post(
         path: '/register',
         tags: ['Autenticação'],
-        summary: 'Regista um novo utilizador',
+        summary: 'Regista um novo usuário',
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
                 required: ['name', 'email', 'password'],
                 properties: [
-                    new OA\Property(property: 'name', type: 'string', example: 'Nome do Utilizador'),
+                    new OA\Property(property: 'name', type: 'string', example: 'Nome do Usuário'),
                     new OA\Property(property: 'email', type: 'string', example: 'user@exemplo.com'),
                     new OA\Property(property: 'password', type: 'string', example: 'senha123')
                 ]
             )
         ),
         responses: [
-            new OA\Response(response: 201, description: 'Utilizador registado com sucesso'),
+            new OA\Response(response: 201, description: 'Usuário registado com sucesso'),
             new OA\Response(response: 400, description: 'Dados inválidos'),
             new OA\Response(response: 409, description: 'Email já registado')
         ]
@@ -160,25 +160,25 @@ class UserController
             );
 
             AppHelper::sendResponse(201, [
-                'message' => 'Utilizador registado com sucesso!',
+                'message' => 'Usuário registado com sucesso!',
                 'user_id' => $userId
             ]);
         } catch (\PDOException $e) {
             if ($e->getCode() == 23000) {
                 AppHelper::sendResponse(409, ['error' => 'Este email já está registado.']);
             } else {
-                AppHelper::sendResponse(500, ['error' => 'Erro interno ao criar utilizador.']);
+                AppHelper::sendResponse(500, ['error' => 'Erro interno ao criar usuário.']);
             }
         }
     }
 
     /**
-     * Retorna os dados do utilizador autenticado.
+     * Retorna os dados do usuário autenticado.
      */
     #[OA\Get(
         path: '/me',
-        tags: ['Utilizador'],
-        summary: 'Retorna os dados do utilizador autenticado',
+        tags: ['Usuário'],
+        summary: 'Retorna os dados do usuário autenticado',
         security: [['bearerAuth' => []]],
         responses: [
             new OA\Response(response: 200, description: 'Sucesso'),
@@ -187,7 +187,7 @@ class UserController
     )]
     public function me()
     {
-        // O utilizador é injetado pelo AuthMiddleware
+        // O usuário é injetado pelo AuthMiddleware
         $user = $_REQUEST['user'];
 
         AppHelper::sendResponse(200, [
@@ -198,7 +198,7 @@ class UserController
 
     /**
      * PUT /profile
-     * Atualiza os dados do próprio utilizador logado
+     * Atualiza os dados do próprio usuário logado
      */
     public function updateProfile()
     {
@@ -223,12 +223,12 @@ class UserController
 
     /**
      * PUT /admin/users
-     * Admin atualiza dados de outro utilizador (ex: mudar role)
+     * Admin atualiza dados de outro usuário (ex: mudar role)
      */
     #[OA\Put(
         path: '/admin/users',
         tags: ['Admin'],
-        summary: 'Atualizar utilizador (Promover/Alterar)',
+        summary: 'Atualizar usuário (Promover/Alterar)',
         description: 'Permite ao admin alterar dados de qualquer user, inclusive mudar a ROLE para admin.',
         security: [['bearerAuth' => []]],
         requestBody: new OA\RequestBody(
@@ -243,7 +243,7 @@ class UserController
             )
         ),
         responses: [
-            new OA\Response(response: 200, description: 'Utilizador atualizado'),
+            new OA\Response(response: 200, description: 'Usuário atualizado'),
             new OA\Response(response: 400, description: 'Erro de validação')
         ]
     )]
@@ -252,7 +252,7 @@ class UserController
         $data = AppHelper::getJsonInput();
 
         if (empty($data['id'])) {
-            AppHelper::sendResponse(400, ['error' => 'ID do utilizador alvo é obrigatório.']);
+            AppHelper::sendResponse(400, ['error' => 'ID do usuário alvo é obrigatório.']);
             return;
         }
 
@@ -264,17 +264,17 @@ class UserController
         }
 
         User::update($data['id'], $data);
-        AppHelper::sendResponse(200, ['message' => 'Utilizador atualizado com sucesso.']);
+        AppHelper::sendResponse(200, ['message' => 'Usuário atualizado com sucesso.']);
     }
 
     /**
      * DELETE /admin/users
-     * Admin remove um utilizador do sistema.
+     * Admin remove um usuário do sistema.
      */
     #[OA\Delete(
         path: '/admin/users',
         tags: ['Admin'],
-        summary: 'Remover utilizador (Banir)',
+        summary: 'Remover usuário (Banir)',
         security: [['bearerAuth' => []]],
         requestBody: new OA\RequestBody(
             required: true,
@@ -286,7 +286,7 @@ class UserController
             )
         ),
         responses: [
-            new OA\Response(response: 200, description: 'Utilizador removido'),
+            new OA\Response(response: 200, description: 'Usuário removido'),
             new OA\Response(response: 400, description: 'Erro ao remover')
         ]
     )]
@@ -295,7 +295,7 @@ class UserController
         $data = AppHelper::getJsonInput();
 
         if (empty($data['id'])) {
-            AppHelper::sendResponse(400, ['error' => 'ID do utilizador alvo é obrigatório.']);
+            AppHelper::sendResponse(400, ['error' => 'ID do usuário alvo é obrigatório.']);
             return;
         }
 
@@ -306,9 +306,9 @@ class UserController
         }
 
         if (User::delete($data['id'])) {
-            AppHelper::sendResponse(200, ['message' => 'Utilizador removido do sistema.']);
+            AppHelper::sendResponse(200, ['message' => 'Usuário removido do sistema.']);
         } else {
-            AppHelper::sendResponse(500, ['error' => 'Erro ao remover utilizador.']);
+            AppHelper::sendResponse(500, ['error' => 'Erro ao remover usuário.']);
         }
     }
 }

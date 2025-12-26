@@ -8,7 +8,7 @@ class AdminUserTest extends TestCase
 {
     public function test_admin_can_promote_user()
     {
-        // 1. Criar utilizador comum
+        // 1. Criar usuário comum
         $this->pdo->exec("INSERT INTO users (id, name, email, password, role) VALUES (50, 'Common', 'c@c.com', '123', 'user')");
 
         $token = $this->authenticateUser('admin');

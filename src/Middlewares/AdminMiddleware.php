@@ -12,7 +12,7 @@ class AdminMiddleware
     {
         // O user já foi injetado no $_REQUEST pelo AuthMiddleware
         if (!isset($_REQUEST['user'])) {
-            AppHelper::sendResponse(401, ['error' => 'Utilizador não autenticado.']);
+            AppHelper::sendResponse(401, ['error' => 'Usuário não autenticado.']);
             return;
         }
 

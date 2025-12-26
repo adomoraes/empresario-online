@@ -17,7 +17,7 @@ class AuthTest extends TestCase
 
         // 2. Verifica se a API respondeu 201 (Created)
         $this->assertEquals(201, $response['status']);
-        $this->assertEquals('Utilizador registado com sucesso!', $response['body']['message']);
+        $this->assertEquals('Usuário registado com sucesso!', $response['body']['message']);
 
         // 3. Verifica se gravou no banco de teste
         $stmt = $this->pdo->prepare("SELECT * FROM users WHERE email = ?");
