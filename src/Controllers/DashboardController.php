@@ -6,8 +6,31 @@ use App\Config\Database;
 use App\Config\AppHelper;
 use PDO;
 
+use OpenApi\Attributes as OA;
+
 class DashboardController
 {
+    #[OA\Get(
+        path: '/dashboard',
+        tags: ['Utilizador'],
+        summary: 'Retorna o feed do dashboard para o usuário autenticado',
+        description: 'Se o usuário tiver um histórico de visualização, retorna conteúdo recomendado. Senão, retorna os artigos mais recentes.',
+        security: [['bearerAuth' => []]],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Sucesso',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'strategy', type: 'string', example: 'recommendation'),
+                        new OA\Property(property: 'top_category', type: 'integer', example: 1),
+                        new OA\Property(property: 'data', type: 'array', items: new OA\Items())
+                    ]
+                )
+            ),
+            new OA\Response(response: 401, description: 'Não autorizado')
+        ]
+    )]
     public function index()
     {
         // O AuthMiddleware já garantiu que o user existe

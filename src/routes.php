@@ -1,5 +1,6 @@
 <?php
 
+use OpenApi\Attributes as OA;
 use App\Config\Router;
 
 $router = new Router();

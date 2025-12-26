@@ -108,6 +108,27 @@ class UserController
     /**
      * Regista um novo utilizador.
      */
+    #[OA\Post(
+        path: '/register',
+        tags: ['Autenticação'],
+        summary: 'Regista um novo utilizador',
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['name', 'email', 'password'],
+                properties: [
+                    new OA\Property(property: 'name', type: 'string', example: 'Nome do Utilizador'),
+                    new OA\Property(property: 'email', type: 'string', example: 'user@exemplo.com'),
+                    new OA\Property(property: 'password', type: 'string', example: 'senha123')
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 201, description: 'Utilizador registado com sucesso'),
+            new OA\Response(response: 400, description: 'Dados inválidos'),
+            new OA\Response(response: 409, description: 'Email já registado')
+        ]
+    )]
     public function register()
     {
         $data = AppHelper::getJsonInput();
@@ -141,6 +162,25 @@ class UserController
     /**
      * Retorna os dados do utilizador autenticado.
      */
+    #[OA\Get(
+        path: '/me',
+        tags: ['Utilizador'],
+        summary: 'Retorna os dados do utilizador autenticado',
+        security: [['bearerAuth' => []]],
+        responses: [
+            new OA\Response(
+                response: 200, 
+                description: 'Sucesso',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'message', type: 'string'),
+                        new OA\Property(property: 'data', type: 'object')
+                    ]
+                )
+            ),
+            new OA\Response(response: 401, description: 'Não autorizado')
+        ]
+    )]
     public function me()
     {
         $user = $_REQUEST['user'];

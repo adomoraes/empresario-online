@@ -6,8 +6,18 @@ use App\Config\Database;
 use App\Config\AppHelper;
 use PDO;
 
+use OpenApi\Attributes as OA;
+
 class InterviewController
 {
+    #[OA\Get(
+        path: '/interviews',
+        tags: ['Entrevistas'],
+        summary: 'Lista todas as entrevistas',
+        responses: [
+            new OA\Response(response: 200, description: 'Lista de entrevistas')
+        ]
+    )]
     public function index()
     {
         $pdo = Database::getConnection();
@@ -25,6 +35,19 @@ class InterviewController
         AppHelper::sendResponse(200, ['data' => $stmt->fetchAll(PDO::FETCH_ASSOC)]);
     }
 
+    #[OA\Get(
+        path: '/interview',
+        tags: ['Entrevistas'],
+        summary: 'Busca uma entrevista por ID',
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'query', required: true, schema: new OA\Schema(type: 'integer'))
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Entrevista encontrada'),
+            new OA\Response(response: 400, description: 'ID da entrevista é necessário'),
+            new OA\Response(response: 404, description: 'Entrevista não encontrada')
+        ]
+    )]
     public function show()
     {
         $id = $_GET['id'] ?? null;
@@ -75,6 +98,30 @@ class InterviewController
         AppHelper::sendResponse(200, ['data' => $interview]);
     }
 
+    #[OA\Post(
+        path: '/interviews',
+        tags: ['Admin'],
+        summary: 'Cria uma nova entrevista',
+        security: [['bearerAuth' => []]],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['title', 'interviewee', 'category_ids'],
+                properties: [
+                    new OA\Property(property: 'title', type: 'string', example: 'Título da Entrevista'),
+                    new OA\Property(property: 'interviewee', type: 'string', example: 'Nome do Entrevistado'),
+                    new OA\Property(property: 'content', type: 'string', example: 'Conteúdo da entrevista...'),
+                    new OA\Property(property: 'category_ids', type: 'array', items: new OA\Items(type: 'integer'), example: [1, 2])
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 201, description: 'Entrevista criada'),
+            new OA\Response(response: 400, description: 'Dados incompletos'),
+            new OA\Response(response: 401, description: 'Não autorizado'),
+            new OA\Response(response: 500, description: 'Erro interno')
+        ]
+    )]
     public function store()
     {
         $data = AppHelper::getJsonInput();

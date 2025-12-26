@@ -14,8 +14,8 @@ class SwaggerController
 
         // 2. Define EXATAMENTE o que deve ser escaneado
         $pathsToScan = [
-            __DIR__ . '/../Controllers',          // Onde estão as rotas
-            __DIR__ . '/../Config/SwaggerConfig.php' // Onde está o cabeçalho da doc
+            __DIR__ . '/../Controllers',
+            __DIR__ . '/../routes.php'
         ];
 
         // --- CORREÇÃO AQUI ---

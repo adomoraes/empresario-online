@@ -6,6 +6,8 @@ use App\Config\Database;
 use App\Config\AppHelper; // <--- Importante
 use PDO;
 
+use OpenApi\Attributes as OA;
+
 class ArticleController
 {
     public function index()
@@ -15,6 +17,19 @@ class ArticleController
         AppHelper::sendResponse(200, ['data' => $stmt->fetchAll(PDO::FETCH_ASSOC)]);
     }
 
+    #[OA\Get(
+        path: '/article',
+        tags: ['Artigos'],
+        summary: 'Busca um artigo por ID',
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'query', required: true, schema: new OA\Schema(type: 'integer'))
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Artigo encontrado'),
+            new OA\Response(response: 400, description: 'ID do artigo é necessário'),
+            new OA\Response(response: 404, description: 'Artigo não encontrado')
+        ]
+    )]
     public function show()
     {
         // 1. Validação básica do ID
@@ -80,6 +95,28 @@ class ArticleController
         }
     }
 
+    #[OA\Post(
+        path: '/articles',
+        tags: ['Admin'],
+        summary: 'Cria um novo artigo',
+        security: [['bearerAuth' => []]],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['title', 'content'],
+                properties: [
+                    new OA\Property(property: 'title', type: 'string', example: 'Título do Artigo'),
+                    new OA\Property(property: 'content', type: 'string', example: 'Conteúdo do artigo...'),
+                    new OA\Property(property: 'category_id', type: 'integer', example: 1)
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 201, description: 'Artigo criado'),
+            new OA\Response(response: 400, description: 'Dados incompletos'),
+            new OA\Response(response: 401, description: 'Não autorizado')
+        ]
+    )]
     public function store()
     {
         $data = AppHelper::getJsonInput(); // <--- Para funcionar no PHPUnit

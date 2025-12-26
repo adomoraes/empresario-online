@@ -6,6 +6,8 @@ use App\Config\Database;
 use App\Config\AppHelper;
 use PDO;
 
+use OpenApi\Attributes as OA;
+
 class CategoryController
 {
     public function index()
@@ -15,6 +17,26 @@ class CategoryController
         AppHelper::sendResponse(200, ['data' => $stmt->fetchAll(PDO::FETCH_ASSOC)]);
     }
 
+    #[OA\Post(
+        path: '/categories',
+        tags: ['Admin'],
+        summary: 'Cria uma nova categoria',
+        security: [['bearerAuth' => []]],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['name'],
+                properties: [
+                    new OA\Property(property: 'name', type: 'string', example: 'Nova Categoria')
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 201, description: 'Categoria criada'),
+            new OA\Response(response: 400, description: 'Nome é obrigatório ou categoria já existe'),
+            new OA\Response(response: 401, description: 'Não autorizado')
+        ]
+    )]
     public function store()
     {
         $data = AppHelper::getJsonInput();
