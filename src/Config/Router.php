@@ -5,107 +5,126 @@ namespace App\Config;
 class Router
 {
     private array $routes = [];
-    private array $groupStack = [];
+    private string $groupPrefix = '';
+    private array $groupMiddlewares = [];
 
-    public function get(string $uri, string $action)
+    /**
+     * Adiciona um grupo de rotas com um prefixo comum.
+     * Ex: $router->mount('/admin', function() { ... });
+     */
+    public function mount(string $prefix, callable $callback): void
     {
-        $this->addRoute('GET', $uri, $action);
+        // 1. Guardar estado anterior (para permitir aninhamento: /api -> /v1)
+        $previousPrefix = $this->groupPrefix;
+        $previousMiddlewares = $this->groupMiddlewares;
+
+        // 2. Atualizar o prefixo atual
+        $this->groupPrefix .= rtrim($prefix, '/');
+
+        // 3. Executar o callback onde as rotas internas serão definidas
+        call_user_func($callback);
+
+        // 4. Restaurar estado anterior (sair do grupo)
+        $this->groupPrefix = $previousPrefix;
+        $this->groupMiddlewares = $previousMiddlewares;
     }
 
-    public function post(string $uri, string $action)
+    /**
+     * Adiciona um middleware ao grupo atual.
+     * Ex: $router->use(new AuthMiddleware());
+     */
+    public function use(object $middleware): void
     {
-        $this->addRoute('POST', $uri, $action);
+        $this->groupMiddlewares[] = $middleware;
     }
 
-    public function put(string $uri, string $action)
+    public function get(string $path, string|callable $handler): void
     {
-        $this->addRoute('PUT', $uri, $action);
+        $this->add('GET', $path, $handler);
     }
 
-    public function delete(string $uri, string $action)
+    public function post(string $path, string|callable $handler): void
     {
-        $this->addRoute('DELETE', $uri, $action);
+        $this->add('POST', $path, $handler);
     }
 
-    public function group(array $attributes, callable $callback)
+    public function put(string $path, string|callable $handler): void
     {
-        $this->groupStack[] = $attributes;
-        call_user_func($callback, $this);
-        array_pop($this->groupStack);
+        $this->add('PUT', $path, $handler);
     }
 
-    private function addRoute(string $method, string $uri, string $action)
+    public function delete(string $path, string|callable $handler): void
     {
-        // CORREÇÃO: Usamos um array para acumular TODOS os middlewares da pilha
-        $middlewares = [];
+        $this->add('DELETE', $path, $handler);
+    }
 
-        foreach ($this->groupStack as $group) {
-            if (isset($group['before'])) {
-                $middlewares[] = $group['before'];
-            }
+    private function add(string $method, string $path, string|callable $handler): void
+    {
+        // Combina o prefixo do grupo com o caminho da rota
+        $fullPath = $this->groupPrefix . $path;
+
+        // Remove barras duplicadas (ex: //login -> /login), mas mantém a raiz /
+        if ($fullPath !== '/') {
+            $fullPath = rtrim($fullPath, '/');
         }
+
+        // Converte para regex para suportar parâmetros (opcional, mantido simples aqui)
+        // Se já tiveres lógica de regex na tua versão anterior, mantém-na aqui.
 
         $this->routes[] = [
             'method' => $method,
-            'uri'    => $uri,
-            'action' => $action,
-            'middlewares' => $middlewares // Guardamos a lista completa (ex: [Auth, Admin])
+            'path' => $fullPath,
+            'handler' => $handler,
+            'middlewares' => $this->groupMiddlewares // Guarda os middlewares ativos neste momento
         ];
     }
 
-    public function dispatch()
+    public function dispatch(): void
     {
-        $method = $_SERVER['REQUEST_METHOD'];
         $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+        $method = $_SERVER['REQUEST_METHOD'];
 
         foreach ($this->routes as $route) {
-            if ($route['method'] === $method && $route['uri'] === $uri) {
+            if ($route['path'] === $uri && $route['method'] === $method) {
 
                 // 1. Executar Middlewares
-                if (!empty($route['middlewares'])) {
-                    foreach ($route['middlewares'] as $middlewareClass) {
-                        if (class_exists($middlewareClass)) {
-                            (new $middlewareClass)->handle();
-                        } else {
-                            $msg = "DEBUG: Middleware não encontrado: $middlewareClass";
-                            fwrite(STDERR, "\n$msg\n"); // <--- IMPRIME NO TERMINAL
-                            AppHelper::sendResponse(500, ['error' => $msg]);
-                            return;
-                        }
+                foreach ($route['middlewares'] as $middleware) {
+                    // Assume que o middleware tem um método handle()
+                    if (method_exists($middleware, 'handle')) {
+                        $middleware->handle();
                     }
                 }
 
-                // 2. Executar Controller
-                $action = $route['action'];
-
-                if (strpos($action, '@') !== false) {
-                    [$controller, $method] = explode('@', $action);
-                } else {
-                    $controller = $action;
-                    $method = '__invoke';
-                }
-
-                if (class_exists($controller)) {
-                    $controllerInstance = new $controller();
-
-                    if (method_exists($controllerInstance, $method)) {
-                        $controllerInstance->$method();
-                        return;
-                    } else {
-                        $msg = "DEBUG: Método '$method' não encontrado em '$controller'";
-                        fwrite(STDERR, "\n$msg\n"); // <--- IMPRIME NO TERMINAL
-                        AppHelper::sendResponse(500, ['error' => $msg]);
-                        return;
-                    }
-                } else {
-                    $msg = "DEBUG: Controller não encontrado: '$controller'";
-                    fwrite(STDERR, "\n$msg\n"); // <--- IMPRIME NO TERMINAL
-                    AppHelper::sendResponse(500, ['error' => $msg]);
-                    return;
-                }
+                // 2. Executar Controlador
+                $this->executeHandler($route['handler']);
+                return;
             }
         }
 
-        AppHelper::sendResponse(404, ['error' => 'Rota não encontrada: ' . $uri]);
+        // 404 Not Found
+        http_response_code(404);
+        echo json_encode(['error' => 'Rota não encontrada']);
+    }
+
+    private function executeHandler(string|callable $handler): void
+    {
+        if (is_callable($handler)) {
+            call_user_func($handler);
+            return;
+        }
+
+        // Formato "Controller@method"
+        [$controllerName, $methodName] = explode('@', $handler);
+
+        if (class_exists($controllerName)) {
+            $controller = new $controllerName();
+            if (method_exists($controller, $methodName)) {
+                $controller->$methodName();
+            } else {
+                throw new \Exception("Método $methodName não encontrado em $controllerName");
+            }
+        } else {
+            throw new \Exception("Controller $controllerName não encontrado");
+        }
     }
 }
