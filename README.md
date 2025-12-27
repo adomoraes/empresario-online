@@ -39,7 +39,7 @@ O projeto não utiliza frameworks de terceiros para o núcleo, implementando a s
 - **Premium:** Leitura de Artigos, Entrevistas e Dashboard.
 - **Admin:** Gestão completa de conteúdo e usuários.
 
-### 4. ⭐ Feature de Destaque: Dashboard Híbrido (Novo)
+### 4. ⭐ Feature de Destaque: Dashboard Híbrido
 
 O endpoint `/dashboard` implementa um **Sistema de Recomendação Híbrido** que personaliza o feed do usuário combinando duas fontes de inteligência:
 
@@ -47,7 +47,14 @@ O endpoint `/dashboard` implementa um **Sistema de Recomendação Híbrido** que
 - **Interesses Explícitos:** Considera as categorias que o usuário escolheu seguir (`/interests`).
 - **Fallback Inteligente:** Para novos usuários (sem dados), o sistema entrega automaticamente os conteúdos mais recentes.
 
-### 5. Estrutura de pastas
+### 5. ⭐ Feature: Sistema de Favoritos
+
+Implementação de funcionalidade para "guardar para ler depois":
+
+- **Estrutura Polimórfica:** O sistema utiliza uma tabela unificada (`user_favorites`) capaz de armazenar referências tanto para **Artigos** quanto para **Entrevistas**.
+- **Gestão de Lista:** O usuário pode adicionar (`POST`), remover (`DELETE`) e visualizar (`GET`) sua lista de favoritos através do endpoint `/favorites`.
+
+### 6. Estrutura de pastas
 
 ```bash
 .
