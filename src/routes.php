@@ -47,6 +47,7 @@ $router->mount('/', function () use ($router) {
     // Interesses
     $router->post('/interests', 'App\Controllers\InterestController@store');
     $router->get('/interests', 'App\Controllers\InterestController@index');
+    $router->delete('/interests', 'App\Controllers\InterestController@delete');
 
     // =============================================================================
     // 🛡️ ÁREA DE ADMINISTRAÇÃO (Requer Role 'admin')

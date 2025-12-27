@@ -16,8 +16,12 @@ class Category
     public static function create(string $name): int
     {
         $pdo = Database::getConnection();
-        // Slug simples: transforma "Tech PHP" em "tech-php"
-        $slug = strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $name)));
+
+        // 1. Transliterar (Ê -> E, ç -> c)
+        $cleanName = iconv('UTF-8', 'ASCII//TRANSLIT', $name);
+
+        // 2. Gerar Slug
+        $slug = strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $cleanName), '-'));
 
         $stmt = $pdo->prepare("INSERT INTO categories (name, slug) VALUES (?, ?)");
         $stmt->execute([$name, $slug]);
@@ -27,7 +31,10 @@ class Category
     public static function update(int $id, string $name): bool
     {
         $pdo = Database::getConnection();
-        $slug = strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $name)));
+
+        // Mesmo processo para update
+        $cleanName = iconv('UTF-8', 'ASCII//TRANSLIT', $name);
+        $slug = strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $cleanName), '-'));
 
         $stmt = $pdo->prepare("UPDATE categories SET name = ?, slug = ? WHERE id = ?");
         return $stmt->execute([$name, $slug, $id]);
