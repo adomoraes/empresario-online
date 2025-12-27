@@ -49,6 +49,11 @@ $router->mount('/', function () use ($router) {
     $router->get('/interests', 'App\Controllers\InterestController@index');
     $router->delete('/interests', 'App\Controllers\InterestController@delete');
 
+    // Favoritos
+    $router->get('/favorites', 'App\Controllers\FavoriteController@index');
+    $router->post('/favorites', 'App\Controllers\FavoriteController@store');
+    $router->delete('/favorites', 'App\Controllers\FavoriteController@destroy');
+
     // =============================================================================
     // 🛡️ ÁREA DE ADMINISTRAÇÃO (Requer Role 'admin')
     // =============================================================================
