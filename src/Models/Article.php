@@ -9,14 +9,12 @@ class Article
 {
     /**
      * Cria um novo artigo.
+     * Assinatura corrigida para corresponder ao Controller: create(userId, categoryId, title, content)
      */
     public static function create(int $userId, int $categoryId, string $title, string $content): int
     {
         $pdo = Database::getConnection();
 
-        // Nota: O slug é gerado mas não estava a ser inserido na query original.
-        // Se a tabela tiver coluna 'slug', deve ser adicionada aqui.
-        // Assumindo a estrutura atual sem slug na tabela articles:
         $sql = "INSERT INTO articles (user_id, category_id, title, content) 
                 VALUES (:user_id, :category_id, :title, :content)";
 
@@ -33,7 +31,6 @@ class Article
 
     /**
      * Atualiza um artigo existente.
-     * CORREÇÃO: Aceita array $data para maior flexibilidade e compatibilidade.
      */
     public static function update(int $id, array $data): bool
     {
@@ -65,9 +62,6 @@ class Article
         return $pdo->prepare($sql)->execute($values);
     }
 
-    /**
-     * Remove um artigo.
-     */
     public static function delete(int $id): bool
     {
         $pdo = Database::getConnection();
@@ -75,9 +69,6 @@ class Article
         return $stmt->execute([$id]);
     }
 
-    /**
-     * Lista todos os artigos.
-     */
     public static function all(): array
     {
         $pdo = Database::getConnection();
@@ -90,9 +81,6 @@ class Article
         return $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    /**
-     * Busca um artigo por ID.
-     */
     public static function find(int $id)
     {
         $pdo = Database::getConnection();

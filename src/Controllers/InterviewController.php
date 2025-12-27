@@ -12,18 +12,28 @@ class InterviewController
 {
     #[OA\Get(
         path: '/interviews',
-        tags: ['Conteúdo (Premium)'],
+        tags: ['Conteúdos Premium'], // <--- TAG UNIFICADA
         summary: 'Lista todas as entrevistas',
         description: 'Acesso restrito a assinantes.',
-        security: [['bearerAuth' => []]],
+        security: [['bearerAuth' => []]], // <--- CADEADO
         responses: [
-            new OA\Response(response: 200, description: 'Lista de entrevistas'),
+            new OA\Response(
+                response: 200,
+                description: 'Lista de entrevistas',
+                content: new OA\JsonContent(type: 'array', items: new OA\Items(properties: [
+                    new OA\Property(property: 'id', type: 'integer'),
+                    new OA\Property(property: 'title', type: 'string'),
+                    new OA\Property(property: 'published_at', type: 'string', format: 'date'),
+                    new OA\Property(property: 'categories', type: 'string', description: 'Lista de categorias separadas por vírgula')
+                ]))
+            ),
             new OA\Response(response: 401, description: 'Não autorizado')
         ]
     )]
     public function index()
     {
         $pdo = Database::getConnection();
+        // Query melhorada para trazer categorias na listagem
         $sql = "
             SELECT i.id, i.title, i.slug, i.published_at,
                    GROUP_CONCAT(c.name) as categories
@@ -39,15 +49,16 @@ class InterviewController
 
     #[OA\Get(
         path: '/interview',
-        tags: ['Conteúdo (Premium)'],
+        tags: ['Conteúdos Premium'], // <--- TAG UNIFICADA
         summary: 'Busca uma entrevista por ID',
-        security: [['bearerAuth' => []]],
+        security: [['bearerAuth' => []]], // <--- CADEADO
         parameters: [
             new OA\Parameter(name: 'id', in: 'query', required: true, schema: new OA\Schema(type: 'integer'))
         ],
         responses: [
             new OA\Response(response: 200, description: 'Entrevista encontrada'),
-            new OA\Response(response: 401, description: 'Não autorizado')
+            new OA\Response(response: 401, description: 'Não autorizado'),
+            new OA\Response(response: 404, description: 'Não encontrado')
         ]
     )]
     public function show()
@@ -60,6 +71,7 @@ class InterviewController
 
         $pdo = Database::getConnection();
 
+        // 1. Buscar a entrevista
         $stmt = $pdo->prepare("SELECT * FROM interviews WHERE id = ?");
         $stmt->execute([$id]);
         $interview = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -69,6 +81,7 @@ class InterviewController
             return;
         }
 
+        // 2. Buscar categorias associadas
         $stmtCat = $pdo->prepare("
             SELECT c.id, c.name 
             FROM categories c
@@ -78,6 +91,7 @@ class InterviewController
         $stmtCat->execute([$id]);
         $interview['categories'] = $stmtCat->fetchAll(PDO::FETCH_ASSOC);
 
+        // 3. Gravar histórico (assumindo que o user já vem do AuthMiddleware)
         if (isset($_REQUEST['user'])) {
             foreach ($interview['categories'] as $cat) {
                 \App\Models\UserHistory::record(
@@ -91,6 +105,8 @@ class InterviewController
 
         AppHelper::sendResponse(200, ['data' => $interview]);
     }
+
+    // --- MÉTODOS DE ADMIN (Mantidos na tag 'Admin') ---
 
     #[OA\Post(
         path: '/interviews',
@@ -196,25 +212,6 @@ class InterviewController
             throw $e;
         } catch (\Exception $e) {
             AppHelper::sendResponse(500, ['error' => 'Erro: ' . $e->getMessage()]);
-        }
-    }
-
-    private function tryIdentifyUser()
-    {
-        // ... Método existente mantido ...
-        $headers = [];
-        if (function_exists('getallheaders')) {
-            $headers = getallheaders();
-        }
-        $authHeader = $headers['Authorization'] ?? $_SERVER['HTTP_AUTHORIZATION'] ?? null;
-
-        if ($authHeader && preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
-            $token = $matches[1];
-            $pdo = Database::getConnection();
-            $stmt = $pdo->prepare("SELECT u.id, u.role FROM personal_access_tokens t JOIN users u ON t.user_id = u.id WHERE t.token = ?");
-            $stmt->execute([$token]);
-            $user = $stmt->fetch(PDO::FETCH_ASSOC);
-            if ($user) $_REQUEST['user'] = $user;
         }
     }
 }

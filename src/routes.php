@@ -20,16 +20,6 @@ $router->get('/api-docs', 'App\Controllers\SwaggerController@index');
 $router->post('/login', 'App\Controllers\UserController@login');
 $router->post('/register', 'App\Controllers\UserController@register');
 
-// Leitura de Conteúdo (Público conforme solicitado)
-$router->get('/articles', 'App\Controllers\ArticleController@index');
-$router->get('/article', 'App\Controllers\ArticleController@show');
-
-$router->get('/interviews', 'App\Controllers\InterviewController@index');
-$router->get('/interview', 'App\Controllers\InterviewController@show');
-
-$router->get('/categories', 'App\Controllers\CategoryController@index');
-
-
 // =================================================================================
 // 🔒 ROTAS PROTEGIDAS (Requer Login)
 // =================================================================================
@@ -43,6 +33,15 @@ $router->mount('/', function () use ($router) {
     $router->get('/me', 'App\Controllers\UserController@me');
     $router->put('/profile', 'App\Controllers\UserController@updateProfile');
     $router->get('/dashboard', 'App\Controllers\DashboardController@index');
+
+    // Leitura de Conteúdo
+    $router->get('/articles', 'App\Controllers\ArticleController@index');
+    $router->get('/article', 'App\Controllers\ArticleController@show');
+
+    $router->get('/interviews', 'App\Controllers\InterviewController@index');
+    $router->get('/interview', 'App\Controllers\InterviewController@show');
+
+    $router->get('/categories', 'App\Controllers\CategoryController@index');
 
     // Interesses
     $router->post('/interests', 'App\Controllers\InterestController@store');

@@ -22,17 +22,12 @@ class InterviewTest extends TestCase
             'category_ids' => [10, 11]
         ], ['Authorization' => "Bearer $token"]);
 
-        // --- ALTERAÇÃO AQUI ---
-        // Se falhar (não for 201), o PHPUnit vai imprimir o corpo da resposta (onde está o erro)
         $this->assertEquals(
             201,
             $response['status'],
-            "Erro retornado pela API: " . json_encode($response['body'], JSON_UNESCAPED_UNICODE)
+            "Erro retornado pela API: " . json_encode($response['body'] ?? [], JSON_UNESCAPED_UNICODE)
         );
-        // ----------------------
 
-        // 3. Verificar no Banco se a relação foi criada
-        // Nota: Só verificamos se o status for 201, senão o teste falha antes na linha acima
         if ($response['status'] === 201) {
             $interviewId = $response['body']['id'];
             $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM interview_categories WHERE interview_id = ?");
@@ -49,21 +44,22 @@ class InterviewTest extends TestCase
         $this->pdo->exec("INSERT INTO interviews (id, title, slug, interviewee) VALUES (50, 'Design Talk', 'design-talk', 'Jony Ive')");
         $this->pdo->exec("INSERT INTO interview_categories (interview_id, category_id) VALUES (50, 20)");
 
-        // 2. Call GET
-        $response = $this->call('GET', '/interview?id=50');
+        // 2. CORREÇÃO: Autenticar Usuário (Rota agora é protegida)
+        $token = $this->authenticateUser();
 
-        // 3. Assert
+        // 3. Call GET com Token
+        $response = $this->call('GET', '/interview?id=50', [], ['Authorization' => "Bearer $token"]);
+
+        // 4. Assert
         $this->assertEquals(200, $response['status']);
         $this->assertEquals('Design', $response['body']['data']['categories'][0]['name']);
     }
 
     public function test_admin_can_update_interview()
     {
-        // 1. Setup
         $this->pdo->exec("INSERT INTO interviews (id, title, slug, interviewee) VALUES (10, 'Old Interview', 'old', 'Old Guy')");
         $token = $this->authenticateUser('admin');
 
-        // 2. Ação
         $response = $this->call('PUT', '/interviews', [
             'id' => 10,
             'title' => 'New Title',
@@ -71,17 +67,8 @@ class InterviewTest extends TestCase
             'category_ids' => []
         ], ['Authorization' => "Bearer $token"]);
 
-        // --- BLOCO DE DEBUG ---
-        if ($response['status'] !== 200) {
-            fwrite(STDERR, "\n\n======== ERRO DO SERVIDOR ========\n");
-            fwrite(STDERR, print_r($response['body'], true));
-            fwrite(STDERR, "\n==================================\n\n");
-        }
-        // -----------------------
-
         $this->assertEquals(200, $response['status']);
 
-        // 3. Verificar Banco
         $stmt = $this->pdo->prepare("SELECT title, interviewee FROM interviews WHERE id = 10");
         $stmt->execute();
         $row = $stmt->fetch();

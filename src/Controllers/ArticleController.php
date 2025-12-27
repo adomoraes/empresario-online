@@ -12,6 +12,38 @@ use OpenApi\Attributes as OA;
 
 class ArticleController
 {
+    #[OA\Get(
+        path: '/articles',
+        tags: ['Conteúdos Premium'],
+        summary: 'Lista todos os artigos',
+        description: 'Retorna a lista completa de artigos disponíveis.',
+        security: [['bearerAuth' => []]],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Lista de artigos recuperada com sucesso',
+                content: new OA\JsonContent(
+                    type: 'object',
+                    properties: [
+                        new OA\Property(
+                            property: 'data',
+                            type: 'array',
+                            items: new OA\Items(
+                                properties: [
+                                    new OA\Property(property: 'id', type: 'integer', example: 1),
+                                    new OA\Property(property: 'title', type: 'string', example: 'Novidades do PHP 8.2'),
+                                    new OA\Property(property: 'category_name', type: 'string', example: 'Tecnologia'),
+                                    new OA\Property(property: 'author_name', type: 'string', example: 'Admin User'),
+                                    new OA\Property(property: 'created_at', type: 'string', format: 'date-time')
+                                ]
+                            )
+                        )
+                    ]
+                )
+            ),
+            new OA\Response(response: 401, description: 'Não autorizado')
+        ]
+    )]
     public function index()
     {
         $articles = Article::all();
@@ -20,8 +52,9 @@ class ArticleController
 
     #[OA\Get(
         path: '/article',
-        tags: ['Artigos'],
+        tags: ['Conteúdos Premium'],
         summary: 'Busca um artigo por ID',
+        security: [['bearerAuth' => []]],
         parameters: [
             new OA\Parameter(name: 'id', in: 'query', required: true, schema: new OA\Schema(type: 'integer'))
         ],
