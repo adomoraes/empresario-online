@@ -1,8 +1,8 @@
 # 🚀 Empresário Online API
 
-API RESTful desenvolvida para o portal **Empresário Online**, utilizando uma arquitetura MVC personalizada em PHP 8.2 puro (sem frameworks pesados), focada em performance, organização e facilidade de manutenção.
+API RESTful desenvolvida para o portal **Empresário Online**, utilizando uma arquitetura MVC personalizada em PHP 8.2, focada em performance, organização e facilidade de manutenção.
 
-O sistema implementa um modelo de acesso **Premium**, onde o conteúdo (Artigos e Entrevistas) é exclusivo para utilizadores autenticados, além de incluir uma área administrativa completa.
+O sistema implementa um modelo de acesso **Premium**, onde o conteúdo (Artigos e Entrevistas) é exclusivo para usuários autenticados, além de incluir uma área administrativa completa.
 
 ---
 
@@ -19,33 +19,37 @@ O sistema implementa um modelo de acesso **Premium**, onde o conteúdo (Artigos 
 
 ## 🏗️ Arquitetura do Projeto
 
-O projeto não utiliza frameworks de terceiros (como Laravel ou Symfony) para o núcleo, implementando a sua própria estrutura leve e eficiente:
+O projeto não utiliza framework, implementando a sua própria estrutura:
 
 ### 1. Padrão MVC (Model-View-Controller)
 
-- **Router Personalizado (`src/Config/Router.php`):** Suporta verbos HTTP (GET, POST, PUT, DELETE), agrupamento de rotas (`mount`) e aplicação de Middlewares (`use`).
-- **Controllers:** Gerem a lógica de requisição e resposta JSON. Exemplos: `ArticleController`, `InterviewController`.
-- **Models:** Utilizam PDO para comunicação direta e segura com o MySQL. Exemplos: `Article::all()`, `User::create()`.
+- **Router Personalizado:** Suporta métodos HTTP, agrupamento de rotas (`mount`) e middlewares.
+- **Controllers:** Gerem a lógica de requisição/resposta.
+- **Models:** Utilizam PDO para comunicação direta e segura com o MySQL.
 
 ### 2. Segurança e Middlewares
 
-O sistema utiliza cadeias de responsabilidade via Middlewares:
-
-- **`AuthMiddleware`:** Verifica o Token Bearer (JWT Simples) e injeta o utilizador na requisição.
-- **`AdminMiddleware`:** Garante que o utilizador autenticado tem a role `admin`.
+- **`AuthMiddleware`:** Verifica o Token Bearer (JWT Simples) e injeta o usuário na requisição.
+- **`AdminMiddleware`:** Garante que o usuário autenticado tem a role `admin`.
 - **`LogMiddleware`:** Regista acessos e métricas de uso para auditoria.
 
 ### 3. Modelo de Acesso "Premium"
 
-- **Público:** Rotas de Login, Registo e Documentação Swagger.
-- **Premium (Autenticado):** Leitura de Artigos, Entrevistas e acesso ao Dashboard.
-- **Admin:** Criação, Edição e Remoção de conteúdo, além da gestão de utilizadores e logs.
+- **Público:** Rotas de Login, Registo e Documentação.
+- **Premium:** Leitura de Artigos, Entrevistas e Dashboard.
+- **Admin:** Gestão completa de conteúdo e usuárioes.
+
+### 4. ⭐ Feature de Destaque: Dashboard Híbrido (Novo)
+
+O endpoint `/dashboard` implementa um **Sistema de Recomendação Híbrido** que personaliza o feed do usuário combinando duas fontes de inteligência:
+
+- **Histórico de Navegação:** Analisa as categorias mais visitadas pelo usuário.
+- **Interesses Explícitos:** Considera as categorias que o usuário escolheu seguir (`/interests`).
+- **Fallback Inteligente:** Para novos usuários (sem dados), o sistema entrega automaticamente os conteúdos mais recentes.
 
 ---
 
 ## 🐳 Como Rodar o Projeto
-
-O ambiente é totalmente "Dockerizado" e inclui scripts de automação para facilitar o início.
 
 ### Pré-requisitos
 
@@ -54,21 +58,24 @@ O ambiente é totalmente "Dockerizado" e inclui scripts de automação para faci
 ### Passo a Passo
 
 1.  **Subir o Ambiente:**
-    Execute o comando na raiz do projeto para construir e iniciar os contentores:
+    Execute o comando na raiz do projeto:
 
     ```bash
     docker-compose up --build
     ```
 
-2.  **Automação de Arranque:**
-    O script `entrypoint.sh` executa as seguintes ações automaticamente a cada arranque:
+2.  **Automação de Início:**
+    O script `entrypoint.sh` executa automaticamente a cada inicialização do Docker:
 
-    - Aguardar a disponibilidade do MySQL.
+    - Aguarda a disponibilidade do MySQL.
     - **Saneamento:** Limpa e recria a estrutura da base de dados.
-    - **Seeding:** Executa `seed_runner.php` para popular o banco com dados de teste (10 users, 2 admins, 20 artigos, 30 entrevistas).
-    - Iniciar o servidor Apache.
+    - **Seeding Avançado:** O script `seed_runner.php` popula o banco com:
+      - 10 usuárioes e 2 Admins.
+      - 20 Artigos e 30 Entrevistas categorizadas.
+      - **Simulação de Uso:** Gera aleatoriamente **Histórico de Leitura** e **Interesses** para testar o algoritmo do Dashboard.
+    - Inicia o servidor Apache.
 
-3.  **Aceder à Aplicação:**
+3.  **Acessar a Aplicação:**
     - **API Base:** `http://localhost:8080`
     - **Documentação Swagger:** `http://localhost:8081/` ou `http://localhost:8080/api-docs`
 
@@ -78,21 +85,19 @@ O ambiente é totalmente "Dockerizado" e inclui scripts de automação para faci
 
 A documentação interativa é gerada automaticamente via anotações (Attributes) nos Controllers.
 
-**Como testar rotas protegidas no Swagger:**
+**Como testar rotas protegidas:**
 
-1.  Aceda a `http://localhost:8080`.
-2.  Use a rota `POST /login` com as credenciais de teste geradas pelo seed:
-    - **Email:** `admin@teste.com`
-    - **Password:** `123`
-3.  Copie o `token` devolvido na resposta JSON.
-4.  Clique no botão **Authorize** (cadeado) no topo da página e cole o token.
-5.  Agora pode testar as rotas protegidas (ex: `GET /articles`, `POST /interviews`).
+1.  Acesse `http://localhost:8081`.
+2.  Use a rota `POST /login` com credenciais de teste (ex: `admin@teste.com` / `123`).
+3.  Copie o `token` da resposta.
+4.  Clique em **Authorize** (cadeado) e cole o token.
+5.  Teste endpoints como `GET /dashboard` para ver a recomendação híbrida em ação.
 
 ---
 
 ## 🧪 Testes Automatizados
 
-O projeto possui uma suíte de testes robusta cobrindo autenticação, CRUDs e regras de negócio.
+O projeto possui uma suíte de testes robusta cobrindo autenticação, CRUDs e regras de negócio complexas.
 
 Para rodar os testes dentro do contentor:
 
