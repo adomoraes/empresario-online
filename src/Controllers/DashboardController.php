@@ -4,8 +4,9 @@ namespace App\Controllers;
 
 use App\Config\Database;
 use App\Config\AppHelper;
+use App\Models\ContentFeed;
+use App\Models\UserInterest;
 use PDO;
-
 use OpenApi\Attributes as OA;
 
 class DashboardController
@@ -13,18 +14,35 @@ class DashboardController
     #[OA\Get(
         path: '/dashboard',
         tags: ['Usuário'],
-        summary: 'Retorna o feed do dashboard para o usuário autenticado',
-        description: 'Se o usuário tiver um histórico de visualização, retorna conteúdo recomendado. Senão, retorna os artigos mais recentes.',
+        summary: 'Retorna o feed do dashboard',
+        description: 'Feed personalizado. Usa estratégia **"hybrid_recommendation"** (Histórico + Interesses) ou **"latest_fallback"** (Recentes) se não houver dados.',
         security: [['bearerAuth' => []]],
         responses: [
             new OA\Response(
                 response: 200,
-                description: 'Sucesso',
+                description: 'Feed gerado com sucesso',
                 content: new OA\JsonContent(
                     properties: [
-                        new OA\Property(property: 'strategy', type: 'string', example: 'recommendation'),
-                        new OA\Property(property: 'top_category', type: 'integer', example: 1),
-                        new OA\Property(property: 'data', type: 'array', items: new OA\Items())
+                        new OA\Property(property: 'strategy', type: 'string', example: 'hybrid_recommendation'),
+                        new OA\Property(property: 'sources', type: 'object', properties: [
+                            new OA\Property(property: 'history_category', type: 'integer', description: 'ID da categoria mais visitada', nullable: true),
+                            new OA\Property(property: 'interest_count', type: 'integer', description: 'Qtd de categorias seguidas')
+                        ]),
+                        new OA\Property(
+                            property: 'data',
+                            type: 'array',
+                            items: new OA\Items(
+                                properties: [
+                                    new OA\Property(property: 'id', type: 'integer'),
+                                    new OA\Property(property: 'title', type: 'string'),
+                                    new OA\Property(property: 'excerpt', type: 'string'),
+                                    new OA\Property(property: 'date', type: 'string', format: 'date-time'),
+                                    new OA\Property(property: 'content_type', type: 'string', enum: ['article', 'interview']),
+                                    new OA\Property(property: 'category_name', type: 'string'),
+                                    new OA\Property(property: 'category_slug', type: 'string')
+                                ]
+                            )
+                        )
                     ]
                 )
             ),
@@ -33,11 +51,10 @@ class DashboardController
     )]
     public function index()
     {
-        // O AuthMiddleware já garantiu que o user existe
         $user = $_REQUEST['user'];
         $pdo = Database::getConnection();
 
-        // 1. Descobrir a Categoria Favorita
+        // 1. Obter a Categoria mais visitada (Histórico)
         $stmt = $pdo->prepare("
             SELECT category_id, COUNT(*) as total
             FROM user_history
@@ -47,51 +64,39 @@ class DashboardController
             LIMIT 1
         ");
         $stmt->execute([$user['id']]);
-        $favorite = $stmt->fetch(PDO::FETCH_ASSOC);
+        $topHistory = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        // 2. Obter Categorias de Interesse (Interesses Explícitos)
+        $userInterests = UserInterest::listByUserId($user['id']);
+        $interestIds = array_column($userInterests, 'id');
+
+        // 3. Fundir as duas fontes
+        $mergedIds = $interestIds;
+        if ($topHistory) {
+            $mergedIds[] = $topHistory['category_id'];
+        }
+
+        $allCategoryIds = array_values(array_unique($mergedIds));
 
         $data = [];
         $strategy = '';
 
-        if ($favorite) {
-            // --- ESTRATÉGIA A: RECOMENDAÇÃO ---
-            $strategy = 'recommendation';
-            $catId = $favorite['category_id'];
-
-            // Busca Artigos dessa categoria
-            $stmtArt = $pdo->prepare("
-                SELECT id, title, 'article' as type, created_at 
-                FROM articles 
-                WHERE category_id = ? 
-                ORDER BY created_at DESC LIMIT 5
-            ");
-            $stmtArt->execute([$catId]);
-            $articles = $stmtArt->fetchAll(PDO::FETCH_ASSOC);
-
-            // Busca Entrevistas dessa categoria (via tabela pivot)
-            $stmtInt = $pdo->prepare("
-                SELECT i.id, i.title, 'interview' as type, i.published_at as created_at
-                FROM interviews i
-                JOIN interview_categories ic ON i.id = ic.interview_id
-                WHERE ic.category_id = ?
-                ORDER BY i.published_at DESC LIMIT 5
-            ");
-            $stmtInt->execute([$catId]);
-            $interviews = $stmtInt->fetchAll(PDO::FETCH_ASSOC);
-
-            // Junta tudo
-            $data = array_merge($articles, $interviews);
+        // 4. Decidir a Estratégia
+        if (!empty($allCategoryIds)) {
+            $strategy = 'hybrid_recommendation';
+            $data = ContentFeed::getFeedByCategories($allCategoryIds);
         } else {
-            // --- ESTRATÉGIA B: MAIS RECENTES (FALLBACK) ---
-            $strategy = 'latest';
-
-            // Últimos 5 artigos gerais
-            $stmt = $pdo->query("SELECT id, title, 'article' as type, created_at FROM articles ORDER BY created_at DESC LIMIT 5");
-            $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $strategy = 'latest_fallback';
+            $data = ContentFeed::getGeneralFeed();
         }
 
+        // 5. Retornar Resposta
         AppHelper::sendResponse(200, [
             'strategy' => $strategy,
-            'top_category' => $favorite['category_id'] ?? null,
+            'sources' => [
+                'history_category' => $topHistory['category_id'] ?? null,
+                'interest_count' => count($interestIds)
+            ],
             'data' => $data
         ]);
     }
