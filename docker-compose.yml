@@ -25,12 +25,21 @@ services:
       - "3306:3306"
     volumes:
       - ./docker/mysql-data:/var/lib/mysql
+
   swagger-ui:
     image: swaggerapi/swagger-ui
     ports:
       - "8081:8080"
     environment:
-      # O navegador (host) acede ao JSON via porta 8080
       SWAGGER_JSON_URL: http://localhost:8080/api-docs
     depends_on:
       - app
+
+  # --- NOVO SERVIÇO ---
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - "8082:8080"
+    depends_on:
+      - db

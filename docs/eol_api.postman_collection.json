@@ -1,8 +1,8 @@
 {
 	"info": {
-		"_postman_id": "c7b8c2f1-4d3e-4f5a-9b1c-8e2d1a3f4b5d",
-		"name": "Empresário Online (Premium)",
-		"description": "Collection completa para a API do Empresário Online.\n\n**Arquitetura:** Modelo Premium (Conteúdo fechado).\n\n**Autenticação:**\nTodas as rotas (exceto Login/Register/Docs) exigem um Header `Authorization: Bearer <token>`.\n\n**Instruções:**\n1. Use a rota **POST Login** primeiro.\n2. O script automático salvará o token na variável `{{token}}`.\n3. Navegue pelas pastas para testar.",
+		"_postman_id": "e0a1b2c3-d4e5-6f7g-8h9i-j0k1l2m3n4o5",
+		"name": "Empresário Online API (Arquitetura Completa)",
+		"description": "Collection gerada com base na análise do `routes.php` e anotações Swagger do projeto.\n\n**Arquitetura:**\n* **MVC Puro** (PHP 8.2)\n* **Autenticação:** Bearer Token (JWT Simples)\n* **Modelo:** Conteúdo Premium (Login Obrigatório)\n\n**Instruções:**\n1. Execute a rota **Login** primeiro.\n2. O script de teste capturará o `token` automaticamente para a variável de ambiente.",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
@@ -19,7 +19,7 @@
 									"var jsonData = pm.response.json();",
 									"if (jsonData.token) {",
 									"    pm.environment.set(\"token\", jsonData.token);",
-									"    console.log(\"Token salvo automaticamente: \" + jsonData.token);",
+									"    console.log(\"Token salvo: \" + jsonData.token);",
 									"}"
 								],
 								"type": "text/javascript"
@@ -43,18 +43,18 @@
 							"host": ["{{base_url}}"],
 							"path": ["login"]
 						},
-						"description": "Retorna o Token JWT. O script de teste salva automaticamente na variável {{token}}."
+						"description": "Autentica e salva o token na variável `{{token}}`."
 					},
 					"response": []
 				},
 				{
-					"name": "Registrar Usuário",
+					"name": "Registar Usuário",
 					"request": {
 						"method": "POST",
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"name\": \"Novo Usuário\",\n    \"email\": \"novo@teste.com\",\n    \"password\": \"123\"\n}",
+							"raw": "{\n    \"name\": \"Novo Leitor\",\n    \"email\": \"leitor@teste.com\",\n    \"password\": \"123\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -72,10 +72,25 @@
 			]
 		},
 		{
-			"name": "📰 Conteúdo (Público)",
+			"name": "💎 Conteúdo Premium (Protegido)",
+			"description": "Requer Header `Authorization: Bearer {{token}}`",
 			"item": [
 				{
-					"name": "Listar Artigos (Capa)",
+					"name": "Dashboard (Feed Híbrido)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/dashboard",
+							"host": ["{{base_url}}"],
+							"path": ["dashboard"]
+						},
+						"description": "Retorna recomendações baseadas no histórico + interesses."
+					},
+					"response": []
+				},
+				{
+					"name": "Listar Artigos",
 					"request": {
 						"method": "GET",
 						"header": [],
@@ -88,7 +103,7 @@
 					"response": []
 				},
 				{
-					"name": "Ler Artigo (Detalhe)",
+					"name": "Ler Artigo (Gera Histórico)",
 					"request": {
 						"method": "GET",
 						"header": [],
@@ -102,8 +117,7 @@
 									"value": "1"
 								}
 							]
-						},
-						"description": "Se enviado com Token, gera histórico. Se sem token, apenas lê."
+						}
 					},
 					"response": []
 				},
@@ -121,6 +135,25 @@
 					"response": []
 				},
 				{
+					"name": "Ler Entrevista",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/interview?id=1",
+							"host": ["{{base_url}}"],
+							"path": ["interview"],
+							"query": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "Listar Categorias",
 					"request": {
 						"method": "GET",
@@ -133,22 +166,42 @@
 					},
 					"response": []
 				}
+			],
+			"auth": {
+				"type": "bearer",
+				"bearer": [
+					{
+						"key": "token",
+						"value": "{{token}}",
+						"type": "string"
+					}
+				]
+			},
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"exec": [""]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [""]
+					}
+				}
 			]
 		},
 		{
-			"name": "👤 Área do Usuário (Protegido)",
+			"name": "👤 Área do Usuário",
 			"item": [
 				{
 					"name": "Meu Perfil",
 					"request": {
 						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}",
-								"type": "text"
-							}
-						],
+						"header": [],
 						"url": {
 							"raw": "{{base_url}}/me",
 							"host": ["{{base_url}}"],
@@ -161,16 +214,10 @@
 					"name": "Atualizar Perfil",
 					"request": {
 						"method": "PUT",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}",
-								"type": "text"
-							}
-						],
+						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"name\": \"Nome Atualizado\",\n    \"password\": \"123456\" \n}",
+							"raw": "{\n    \"name\": \"Nome Editado\",\n    \"email\": \"editado@teste.com\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -186,39 +233,13 @@
 					"response": []
 				},
 				{
-					"name": "Dashboard (Feed Híbrido)",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}",
-								"type": "text"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/dashboard",
-							"host": ["{{base_url}}"],
-							"path": ["dashboard"]
-						},
-						"description": "Retorna conteúdo baseado no histórico + interesses."
-					},
-					"response": []
-				},
-				{
 					"name": "❤️ Interesses",
 					"item": [
 						{
 							"name": "Listar Interesses",
 							"request": {
 								"method": "GET",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{token}}",
-										"type": "text"
-									}
-								],
+								"header": [],
 								"url": {
 									"raw": "{{base_url}}/interests",
 									"host": ["{{base_url}}"],
@@ -231,13 +252,7 @@
 							"name": "Adicionar Interesse",
 							"request": {
 								"method": "POST",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{token}}",
-										"type": "text"
-									}
-								],
+								"header": [],
 								"body": {
 									"mode": "raw",
 									"raw": "{\n    \"category_id\": 1\n}",
@@ -259,13 +274,7 @@
 							"name": "Remover Interesse",
 							"request": {
 								"method": "DELETE",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{token}}",
-										"type": "text"
-									}
-								],
+								"header": [],
 								"body": {
 									"mode": "raw",
 									"raw": "{\n    \"category_id\": 1\n}",
@@ -292,19 +301,12 @@
 							"name": "Listar Favoritos",
 							"request": {
 								"method": "GET",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{token}}",
-										"type": "text"
-									}
-								],
+								"header": [],
 								"url": {
 									"raw": "{{base_url}}/favorites",
 									"host": ["{{base_url}}"],
 									"path": ["favorites"]
-								},
-								"description": "Lista artigos e entrevistas favoritados."
+								}
 							},
 							"response": []
 						},
@@ -312,13 +314,7 @@
 							"name": "Adicionar Favorito",
 							"request": {
 								"method": "POST",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{token}}",
-										"type": "text"
-									}
-								],
+								"header": [],
 								"body": {
 									"mode": "raw",
 									"raw": "{\n    \"type\": \"article\",\n    \"id\": 1\n}",
@@ -333,7 +329,7 @@
 									"host": ["{{base_url}}"],
 									"path": ["favorites"]
 								},
-								"description": "Body: type (article/interview), id (int)"
+								"description": "type: 'article' ou 'interview'"
 							},
 							"response": []
 						},
@@ -341,13 +337,7 @@
 							"name": "Remover Favorito",
 							"request": {
 								"method": "DELETE",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{token}}",
-										"type": "text"
-									}
-								],
+								"header": [],
 								"body": {
 									"mode": "raw",
 									"raw": "{\n    \"type\": \"article\",\n    \"id\": 1\n}",
@@ -361,224 +351,51 @@
 									"raw": "{{base_url}}/favorites",
 									"host": ["{{base_url}}"],
 									"path": ["favorites"]
-								},
-								"description": "Remove dos favoritos."
+								}
 							},
 							"response": []
 						}
 					]
 				}
-			]
+			],
+			"auth": {
+				"type": "bearer",
+				"bearer": [
+					{
+						"key": "token",
+						"value": "{{token}}",
+						"type": "string"
+					}
+				]
+			},
+			"event": []
 		},
 		{
-			"name": "🛡️ Admin (Protegido)",
+			"name": "🛡️ Admin (Requer Role 'admin')",
 			"item": [
 				{
-					"name": "Criar Artigo",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}",
-								"type": "text"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"title\": \"Artigo Novo\",\n    \"content\": \"Conteúdo do artigo...\",\n    \"category_id\": 1\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{base_url}}/articles",
-							"host": ["{{base_url}}"],
-							"path": ["articles"]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Editar Artigo",
-					"request": {
-						"method": "PUT",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}",
-								"type": "text"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"id\": 1,\n    \"title\": \"Artigo Editado\",\n    \"content\": \"Conteúdo novo...\",\n    \"category_id\": 2\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{base_url}}/articles",
-							"host": ["{{base_url}}"],
-							"path": ["articles"]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Remover Artigo",
-					"request": {
-						"method": "DELETE",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}",
-								"type": "text"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"id\": 1\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{base_url}}/articles",
-							"host": ["{{base_url}}"],
-							"path": ["articles"]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Importar Entrevista (CSV)",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}",
-								"type": "text"
-							}
-						],
-						"body": {
-							"mode": "formdata",
-							"formdata": [
-								{
-									"key": "file",
-									"type": "file",
-									"src": []
-								}
-							]
-						},
-						"url": {
-							"raw": "{{base_url}}/admin/import/interview",
-							"host": ["{{base_url}}"],
-							"path": ["admin", "import", "interview"]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Listar Usuários",
+					"name": "Dashboard Admin (Stats)",
 					"request": {
 						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}",
-								"type": "text"
-							}
-						],
+						"header": [],
 						"url": {
-							"raw": "{{base_url}}/admin/users",
+							"raw": "{{base_url}}/admin/dashboard",
 							"host": ["{{base_url}}"],
-							"path": ["admin", "users"]
+							"path": ["admin", "dashboard"]
 						}
 					},
 					"response": []
 				},
 				{
-					"name": "Editar Usuário (Admin)",
-					"request": {
-						"method": "PUT",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}",
-								"type": "text"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"id\": 2,\n    \"role\": \"admin\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{base_url}}/admin/users",
-							"host": ["{{base_url}}"],
-							"path": ["admin", "users"]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Remover Usuário",
-					"request": {
-						"method": "DELETE",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}",
-								"type": "text"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"id\": 5\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{base_url}}/admin/users",
-							"host": ["{{base_url}}"],
-							"path": ["admin", "users"]
-						},
-						"description": "Remove um usuário do sistema."
-					},
-					"response": []
-				},
-				{
-					"name": "Ver Logs de Acesso",
+					"name": "Logs de Acesso",
 					"request": {
 						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}",
-								"type": "text"
-							}
-						],
+						"header": [],
 						"url": {
 							"raw": "{{base_url}}/admin/logs",
 							"host": ["{{base_url}}"],
 							"path": ["admin", "logs"]
-						},
-						"description": "Histórico de requisições à API."
+						}
 					},
 					"response": []
 				},
@@ -586,13 +403,7 @@
 					"name": "Limpar Logs",
 					"request": {
 						"method": "DELETE",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}",
-								"type": "text"
-							}
-						],
+						"header": [],
 						"url": {
 							"raw": "{{base_url}}/admin/logs",
 							"host": ["{{base_url}}"],
@@ -600,8 +411,272 @@
 						}
 					},
 					"response": []
+				},
+				{
+					"name": "Gestão de Artigos",
+					"item": [
+						{
+							"name": "Criar Artigo",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"title\": \"Artigo Via API\",\n    \"content\": \"Conteúdo do artigo criado via API...\",\n    \"category_id\": 1\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/articles",
+									"host": ["{{base_url}}"],
+									"path": ["articles"]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Atualizar Artigo",
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"id\": 1,\n    \"title\": \"Título Atualizado\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/articles",
+									"host": ["{{base_url}}"],
+									"path": ["articles"]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Remover Artigo",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"id\": 1\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/articles",
+									"host": ["{{base_url}}"],
+									"path": ["articles"]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Gestão de Categorias",
+					"item": [
+						{
+							"name": "Criar Categoria",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"Nova Categoria\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/categories",
+									"host": ["{{base_url}}"],
+									"path": ["categories"]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Atualizar Categoria",
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"id\": 1,\n    \"name\": \"Categoria Renomeada\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/categories",
+									"host": ["{{base_url}}"],
+									"path": ["categories"]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Remover Categoria",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"id\": 5\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/categories",
+									"host": ["{{base_url}}"],
+									"path": ["categories"]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Gestão de Entrevistas",
+					"item": [
+						{
+							"name": "Criar Entrevista",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"title\": \"Entrevista com Dev\",\n    \"interviewee\": \"Fulano\",\n    \"content\": \"Texto...\",\n    \"category_ids\": [1, 2]\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/interviews",
+									"host": ["{{base_url}}"],
+									"path": ["interviews"]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Importar (JSON)",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"title\": \"Entrevista Importada\",\n    \"interviewee\": \"Beltrano\",\n    \"content\": \"Imported content\",\n    \"slug\": \"entrevista-importada\",\n    \"categories\": [\n        {\"name\": \"Tech\", \"slug\": \"tech\"}\n    ]\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/admin/import/interview",
+									"host": ["{{base_url}}"],
+									"path": ["admin", "import", "interview"]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Gestão de Usuários",
+					"item": [
+						{
+							"name": "Listar Usuários",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/admin/users",
+									"host": ["{{base_url}}"],
+									"path": ["admin", "users"]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Promover Usuário",
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"id\": 2,\n    \"role\": \"admin\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/admin/users",
+									"host": ["{{base_url}}"],
+									"path": ["admin", "users"]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Banir Usuário",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"id\": 3\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/admin/users",
+									"host": ["{{base_url}}"],
+									"path": ["admin", "users"]
+								}
+							},
+							"response": []
+						}
+					]
 				}
-			]
+			],
+			"auth": {
+				"type": "bearer",
+				"bearer": [
+					{
+						"key": "token",
+						"value": "{{token}}",
+						"type": "string"
+					}
+				]
+			},
+			"event": []
 		}
 	],
 	"variable": [
